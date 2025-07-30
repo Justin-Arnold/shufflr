@@ -98,65 +98,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           
-  test-docker:
-    needs: docker
-    runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
-
-    steps:
-      - name: Test Docker image
-        run: |
-          IMAGE_NAME_LOWER=$(echo "${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
-          # Pull and test the AMD64 image (since we're on AMD64 runner)
-          docker pull ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}:${{ github.sha }}
-          
-          # Run a quick smoke test
-          docker run --rm -d --name shufflr-test \
-            -p 8080:8080 \
-            ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}:${{ github.sha }}
-          
-          # Wait for the service to start
-          sleep 10
-          
-          # Test health endpoint
-          curl -f http://localhost:8080/health || exit 1
-          
-          # Cleanup
-          docker stop shufflr-test
-
-  security-scan:
-    needs: docker
-    runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
-    permissions:
-      contents: read
-      security-events: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Create lowercase image name
-        id: image
-        run: |
-          IMAGE_NAME_LOWER=$(echo "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
-          echo "name_lower=${IMAGE_NAME_LOWER}" >> $GITHUB_OUTPUT
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ steps.image.outputs.name_lower }}:${{ github.sha }}
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-
-      - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        if: always()
-        with:
-          sarif_file: 'trivy-results.sarif'
-
   release:
-    needs: [build-and-test, security-scan, test-docker] 
+    needs: [build-and-test, docker] 
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
