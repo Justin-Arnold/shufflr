@@ -1,8 +1,5 @@
 # Shufflr - Self-Hosted Random Image API Service
 
-[![Build and Publish Docker Image](https://github.com/Justin-Arnold/shufflr/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/Justin-Arnold/shufflr/actions/workflows/docker-publish.yml)
-[![Docker Image](https://img.shields.io/badge/docker-ghcr.io%2FJustin--Arnold%2Fshufflr-blue)](https://github.com/Justin-Arnold/shufflr/pkgs/container/shufflr)
-
 Shufflr is a lightweight, self-hosted random image API service built in Go. It provides a simple REST API for retrieving random images from your collection, along with a clean web interface for managing images and API keys.
 
 ## ✨ Features
@@ -19,58 +16,27 @@ Shufflr is a lightweight, self-hosted random image API service built in Go. It p
 
 ## 🚀 Quick Start
 
-### Using Docker (Recommended)
+### Setup Using Docker Compose
 
-1. **Run with Docker:**
+1. Create and navigate to app directory
+    ```bash
+    mkdir shufflr && cd shufflr
+    ```
+
+2. Clone down the Docker Compose file
    ```bash
-   docker run -d \
-     --name shufflr \
-     -p 8080:8080 \
-     -v shufflr_data:/app/data \
-     ghcr.io/justin-arnold/shufflr:latest
+   curl -O https://raw.githubusercontent.com/Justin-Arnold/shufflr/master/docker-compose.yml
    ```
 
-2. **Or use Docker Compose:**
-   ```bash
-   curl -O https://raw.githubusercontent.com/Justin-Arnold/shufflr/main/docker-compose.yml
-   docker-compose up -d
-   ```
+3. Generate your session secret and add it to you .env file
+    ```bash
+    echo "SHUFFLR_SESSION_SECRET=$(openssl rand -hex 32)" > .env
+    ```
 
-3. **Access the admin interface:**
-   Open http://localhost:8080 in your browser
-
-4. **Complete initial setup:**
-   - Create your admin account
-   - Upload some images
-   - Generate an API key
-
-### Using Pre-built Binary
-
-1. **Download the latest release:**
-   ```bash
-   curl -L https://github.com/Justin-Arnold/shufflr/releases/latest/download/shufflr-linux-amd64 -o shufflr
-   chmod +x shufflr
-   ```
-
-2. **Run the server:**
-   ```bash
-   ./shufflr
-   ```
-
-### Building from Source
-
-1. **Prerequisites:**
-   - Go 1.21 or later
-   - CGO enabled (for SQLite)
-
-2. **Clone and build:**
-   ```bash
-   git clone https://github.com/Justin-Arnold/shufflr.git
-   cd shufflr
-   go mod download
-   go build -o shufflr ./cmd/server
-   ./shufflr
-   ```
+4. Start the app
+    ```bash
+    docker-compose up -d
+    ```
 
 ## 📖 API Documentation
 
@@ -138,201 +104,17 @@ Shufflr is configured using environment variables:
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `PORT` | `8080` | Server port |
-| `DATABASE_PATH` | `./shufflr.db` | SQLite database file path |
-| `UPLOAD_DIR` | `./uploads` | Directory for uploaded images |
-| `BASE_URL` | `http://localhost:8080` | Base URL for the service |
-| `SESSION_SECRET` | Generated | Secret key for session encryption |
-
-### Example Configuration
-
-Create a `.env` file:
-```bash
-PORT=8080
-DATABASE_PATH=/data/shufflr.db
-UPLOAD_DIR=/data/uploads
-BASE_URL=https://images.example.com
-SESSION_SECRET=your-secret-key-here
-```
-
-## 🐳 Docker Deployment
-
-### Basic Deployment
-
-```bash
-docker run -d \
-  --name shufflr \
-  -p 8080:8080 \
-  -v shufflr_data:/app/data \
-  -e BASE_URL=https://your-domain.com \
-  ghcr.io/justin-arnold/shufflr:latest
-```
-
-### Production Deployment with Docker Compose
-
-```yaml
-version: '3.8'
-
-services:
-  shufflr:
-    image: ghcr.io/justin-arnold/shufflr:latest
-    container_name: shufflr
-    restart: unless-stopped
-    ports:
-      - "8080:8080"
-    environment:
-      - BASE_URL=https://your-domain.com
-      - SESSION_SECRET=your-secure-session-secret
-    volumes:
-      - shufflr_data:/app/data
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Optional: Nginx reverse proxy
-  nginx:
-    image: nginx:alpine
-    container_name: shufflr_nginx
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - shufflr
-
-volumes:
-  shufflr_data:
-```
-
-## 🔐 Security
-
-### Best Practices
-
-1. **Use HTTPS in production**: Always serve Shufflr behind a reverse proxy with SSL/TLS
-2. **Secure session secrets**: Use a strong, randomly generated `SESSION_SECRET`
-3. **Regular backups**: Backup your database and uploaded images regularly
-4. **API key rotation**: Regularly rotate API keys for better security
-5. **Access control**: Restrict admin interface access using firewall rules or VPN
-
-### Rate Limiting
-
-Consider implementing rate limiting at the reverse proxy level:
-
-```nginx
-# Example Nginx rate limiting
-location /api/ {
-    limit_req zone=api burst=10 nodelay;
-    proxy_pass http://shufflr:8080;
-}
-```
-
-## 📱 Admin Interface
-
-The admin web interface provides:
-
-- **Dashboard**: Overview of images, API keys, and usage statistics
-- **Image Management**: Upload, view, rename, and delete images
-- **API Key Management**: Create, disable, regenerate, and delete API keys
-- **Usage Metrics**: Track API requests and key usage
-
-Access the admin interface at `http://your-domain/admin`
-
-## 🛠️ Development
-
-### Prerequisites
-
-- Go 1.21+
-- SQLite3 development libraries
-- Node.js (for UI development, optional)
-
-### Setup
-
-```bash
-git clone https://github.com/Justin-Arnold/shufflr.git
-cd shufflr
-go mod download
-```
-
-### Running Locally
-
-```bash
-go run ./cmd/server
-```
-
-### Running Tests
-
-```bash
-go test -v ./...
-```
-
-### Building
-
-```bash
-# Local build
-go build -o shufflr ./cmd/server
-
-# Cross-compilation
-GOOS=linux GOARCH=amd64 go build -o shufflr-linux-amd64 ./cmd/server
-GOOS=windows GOARCH=amd64 go build -o shufflr-windows-amd64.exe ./cmd/server
-GOOS=darwin GOARCH=amd64 go build -o shufflr-darwin-amd64 ./cmd/server
-```
-
-## 🔧 Troubleshooting
-
-### Common Issues
-
-**Database locked error:**
-```bash
-# Stop the service and check for orphaned processes
-pkill shufflr
-# Restart the service
-```
-
-**Permission denied errors:**
-```bash
-# Check file permissions
-ls -la shufflr.db uploads/
-# Fix permissions
-chmod 644 shufflr.db
-chmod 755 uploads/
-```
-
-**Images not loading:**
-- Verify the `UPLOAD_DIR` path is correct
-- Check file permissions on the uploads directory
-- Ensure images exist in the database and filesystem
-
-**API key authentication failing:**
-- Verify the API key is correct and enabled
-- Check the request headers format
-- Review server logs for authentication errors
-
-### Logs
-
-**Docker logs:**
-```bash
-docker logs shufflr
-```
-
-**Service logs:**
-The application logs to stdout. In production, consider using a log aggregation service.
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+| `SHUFFLR_PORT` | `8080` | Server port |
+| `SHUFFLR_DATABASE_PATH` | `./shufflr.db` | SQLite database file path |
+| `SHUFFLR_UPLOAD_DIR` | `./uploads` | Directory for uploaded images |
+| `SHUFFLR_BASE_URL` | `http://localhost:8080` | Base URL for the service |
+| `SHUFFLR_SESSION_SECRET` | Generated | Secret key for session encryption |
 
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+Note: Note created yet
 
 ## 🙏 Acknowledgments
 
