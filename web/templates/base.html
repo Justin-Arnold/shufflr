@@ -37,7 +37,8 @@
     {{end}}
 
     <main class="w-screen {{if .ShowNav}} px-4 py-8 grow overflow-auto{{else}}min-h-screen flex items-center justify-center{{end}}">
-        <div class="mx-auto container">
+        <!-- center the containers content if not ShowNav -->
+        <div class="mx-auto{{if .ShowNav}}container{{else}} w-full flex justify-center {{end}}">
             {{template "content" .}}
         </div>
     </main>
