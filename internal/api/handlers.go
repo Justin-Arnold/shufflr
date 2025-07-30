@@ -136,7 +136,7 @@ func (s *Server) HandleServeImage(w http.ResponseWriter, r *http.Request) {
 	// Security: prevent directory traversal
 	filename = filepath.Base(filename)
 	
-	// Check if image exists in database
+	// Check if image exists in database and is enabled
 	images, err := s.db.GetAllImageFiles()
 	if err != nil {
 		log.Printf("Error getting image files: %v", err)
@@ -146,15 +146,17 @@ func (s *Server) HandleServeImage(w http.ResponseWriter, r *http.Request) {
 
 	var foundImage bool
 	var mimeType string
+	var isEnabled bool
 	for _, img := range images {
 		if img.Filename == filename {
 			foundImage = true
 			mimeType = img.MimeType
+			isEnabled = img.Enabled
 			break
 		}
 	}
 
-	if !foundImage {
+	if !foundImage || !isEnabled {
 		http.Error(w, "Image not found", http.StatusNotFound)
 		return
 	}

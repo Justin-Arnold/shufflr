@@ -106,6 +106,7 @@ func main() {
 	mux.HandleFunc("/admin/images/upload", authService.RequireAdminAuth(adminServer.HandleImageUpload))
 	mux.HandleFunc("/admin/images/rename", authService.RequireAdminAuth(adminServer.HandleImageRename))
 	mux.HandleFunc("/admin/images/delete", authService.RequireAdminAuth(adminServer.HandleImageDelete))
+	mux.HandleFunc("/admin/images/toggle", authService.RequireAdminAuth(adminServer.HandleToggleImage))
 
 	mux.HandleFunc("/admin/api-keys", authService.RequireAdminAuth(adminServer.HandleAPIKeys))
 	mux.HandleFunc("/admin/api-keys/new", authService.RequireAdminAuth(adminServer.HandleNewAPIKey))

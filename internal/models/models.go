@@ -32,5 +32,6 @@ type ImageFile struct {
 	Filename string `json:"filename"`
 	Size     int64  `json:"size"`
 	MimeType string `json:"mime_type"`
+	Enabled  bool   `json:"enabled"`
 	UploadedAt time.Time `json:"uploaded_at"`
 }

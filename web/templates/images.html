@@ -44,11 +44,14 @@
     <!-- Image Grid -->
     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {{range .Images}}
-        <div class="card bg-base-200 shadow-lg">
-            <figure class="px-4 pt-4">
+        <div class="card bg-base-200 shadow-lg {{if not .Enabled}}opacity-50{{end}}">
+            <figure class="px-4 pt-4 relative">
                 <img src="/api/images/{{.Filename}}" alt="{{.Filename}}" 
-                     class="rounded-lg w-full h-32 object-cover cursor-pointer"
+                     class="rounded-lg w-full h-32 object-cover cursor-pointer {{if not .Enabled}}grayscale{{end}}"
                      onclick="viewImage('{{.Filename}}', '/api/images/{{.Filename}}')" />
+                {{if not .Enabled}}
+                <div class="absolute top-2 left-2 badge badge-error badge-sm">Disabled</div>
+                {{end}}
             </figure>
             <div class="card-body p-4">
                 <h3 class="card-title text-sm truncate" title="{{.Filename}}">{{.Filename}}</h3>
@@ -64,6 +67,11 @@
                             </svg>
                         </div>
                         <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                            {{if .Enabled}}
+                            <li><a onclick="toggleImage('{{.Filename}}', false)">Disable</a></li>
+                            {{else}}
+                            <li><a onclick="toggleImage('{{.Filename}}', true)">Enable</a></li>
+                            {{end}}
                             <li><a onclick="renameImage('{{.Filename}}')">Rename</a></li>
                             <li><a onclick="deleteImage('{{.Filename}}')">Delete</a></li>
                         </ul>
@@ -161,6 +169,27 @@ function deleteImage(filename) {
     document.getElementById('deleteImageName').textContent = filename;
     document.getElementById('deleteFilename').value = filename;
     document.getElementById('deleteImageModal').showModal();
+}
+
+function toggleImage(filename, enabled) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/admin/images/toggle';
+    
+    const filenameInput = document.createElement('input');
+    filenameInput.type = 'hidden';
+    filenameInput.name = 'filename';
+    filenameInput.value = filename;
+    
+    const enabledInput = document.createElement('input');
+    enabledInput.type = 'hidden';
+    enabledInput.name = 'enabled';
+    enabledInput.value = enabled.toString();
+    
+    form.appendChild(filenameInput);
+    form.appendChild(enabledInput);
+    document.body.appendChild(form);
+    form.submit();
 }
 </script>
 {{end}}
