@@ -1,7 +1,17 @@
 {{define "content"}}
 <div class="space-y-6">
     <div class="flex justify-between items-center">
-        <h1 class="text-3xl font-bold">API Key Management</h1>
+        <!-- Search Bar -->
+        <div class="form-control">
+            <div class="input-group flex items-center gap-2">
+                <input type="text" id="apiKeySearch" placeholder="Search API keys by name..." class="input input-bordered flex-1" oninput="filterAPIKeys()" />
+                <button class="btn btn-square" onclick="clearAPIKeySearch()">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
         <a href="/admin/api-keys/new" class="btn btn-primary">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -32,6 +42,12 @@
     <!-- API Keys Table -->
     <div class="card bg-base-200 shadow-xl">
         <div class="card-body">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="card-title">API Keys</h2>
+                <div class="text-sm text-base-content/70">
+                    Showing <span id="visibleAPIKeyCount">{{len .APIKeys}}</span> of {{len .APIKeys}} keys
+                </div>
+            </div>
             <div class="overflow-x-auto">
                 <table class="table table-zebra">
                     <thead>
@@ -44,9 +60,9 @@
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="apiKeyTableBody">
                         {{range .APIKeys}}
-                        <tr>
+                        <tr class="api-key-row" data-name="{{.Name}}">
                             <td>
                                 <div class="font-semibold">{{.Name}}</div>
                                 <div class="text-xs text-base-content/60">ID: {{.ID}}</div>
@@ -188,6 +204,29 @@ function deleteAPIKey(keyID, keyName) {
     document.getElementById('deleteKeyID').value = keyID;
     document.getElementById('deleteKeyName').textContent = keyName;
     document.getElementById('deleteAPIKeyModal').showModal();
+}
+
+function filterAPIKeys() {
+    const searchTerm = document.getElementById('apiKeySearch').value.toLowerCase();
+    const apiKeyRows = document.querySelectorAll('.api-key-row');
+    let visibleCount = 0;
+    
+    apiKeyRows.forEach(row => {
+        const keyName = row.getAttribute('data-name').toLowerCase();
+        if (keyName.includes(searchTerm)) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    document.getElementById('visibleAPIKeyCount').textContent = visibleCount;
+}
+
+function clearAPIKeySearch() {
+    document.getElementById('apiKeySearch').value = '';
+    filterAPIKeys();
 }
 </script>
 {{end}}
