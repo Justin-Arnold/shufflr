@@ -1,10 +1,11 @@
 {{define "content"}}
 <div class="space-y-6">
+    {{if .APIKeys}}
     <div class="flex justify-between items-center">
         <!-- Search Bar -->
         <div class="form-control">
             <div class="input-group flex items-center gap-2">
-                <input type="text" id="apiKeySearch" placeholder="Search API keys by name..." class="input input-bordered flex-1" oninput="filterAPIKeys()" />
+                <input type="text" id="apiKeySearch" placeholder="Search API keys by name..." class="input input-bordered flex-1 w-80" oninput="filterAPIKeys()" />
                 <button class="btn btn-square" onclick="clearAPIKeySearch()">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -19,6 +20,7 @@
             New API Key
         </a>
     </div>
+    {{end}}
 
     {{if .Success}}
     <div class="alert alert-success">
