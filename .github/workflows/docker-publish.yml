@@ -100,13 +100,14 @@ jobs:
     steps:
       - name: Test Docker image
         run: |
+          IMAGE_NAME_LOWER=$(echo "${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           # Pull and test the AMD64 image (since we're on AMD64 runner)
-          docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker pull ${{ env.REGISTRY }}/${ IMAGE_NAME_LOWER }:${{ github.sha }}
           
           # Run a quick smoke test
           docker run --rm -d --name shufflr-test \
             -p 8080:8080 \
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${ IMAGE_NAME_LOWER }:${{ github.sha }}
           
           # Wait for the service to start
           sleep 10
