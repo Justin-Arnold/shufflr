@@ -5,7 +5,6 @@
 *.so
 *.dylib
 shufflr
-server
 
 # Test binary, built with `go test -c`
 *.test
