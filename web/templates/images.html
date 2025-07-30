@@ -1,7 +1,19 @@
 {{define "content"}}
 <div class="space-y-6">
     <div class="flex justify-between items-center">
-        <h1 class="text-3xl font-bold">Image Management</h1>
+        <!-- Search Bar -->
+        {{if .Images}}
+        <div class="form-control">
+            <div class="input-group flex items-center gap-2"> 
+                <input type="text" id="imageSearch" placeholder="Search images by filename..." class="input input-bordered flex-1 w-80" oninput="filterImages()" />
+                <button class="btn btn-square" onclick="clearSearch()">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        {{end}}
         <a href="/admin/images/upload" class="btn btn-primary">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -27,32 +39,6 @@
         <span>{{.Error}}</span>
     </div>
     {{end}}
-
-    <!-- Search Bar -->
-    {{if .Images}}
-    <div class="form-control">
-        <div class="input-group">
-            <input type="text" id="imageSearch" placeholder="Search images by filename..." class="input input-bordered flex-1" oninput="filterImages()" />
-            <button class="btn btn-square" onclick="clearSearch()">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-            </button>
-        </div>
-    </div>
-    {{end}}
-
-    <!-- Stats -->
-    <div class="stats stats-vertical lg:stats-horizontal shadow">
-        <div class="stat">
-            <div class="stat-title">Total Images</div>
-            <div class="stat-value" id="visibleImageCount">{{len .Images}}</div>
-        </div>
-        <div class="stat">
-            <div class="stat-title">Total Size</div>
-            <div class="stat-value">{{.TotalSizeFormatted}}</div>
-        </div>
-    </div>
 
     {{if .Images}}
     <!-- Image Grid -->
