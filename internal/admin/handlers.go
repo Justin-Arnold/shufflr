@@ -138,10 +138,16 @@ func (s *Server) HandleLogout(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleDashboard(w http.ResponseWriter, r *http.Request) {
 	user := auth.GetAdminFromContext(r.Context())
 	
-	imageCount, err := s.db.GetImageFileCount()
+	enabledImageCount, err := s.db.GetImageFileCount()
 	if err != nil {
-		log.Printf("Error getting image count: %v", err)
-		imageCount = 0
+		log.Printf("Error getting enabled image count: %v", err)
+		enabledImageCount = 0
+	}
+
+	totalImageCount, err := s.db.GetTotalImageFileCount()
+	if err != nil {
+		log.Printf("Error getting total image count: %v", err)
+		totalImageCount = 0
 	}
 
 	apiKeys, err := s.db.GetAllAPIKeys()
@@ -168,10 +174,11 @@ func (s *Server) HandleDashboard(w http.ResponseWriter, r *http.Request) {
 
 	data := struct {
 		PageData
-		ImageCount       int
-		APIKeyCount      int
+		EnabledImageCount int
+		TotalImageCount   int
+		APIKeyCount       int
 		ActiveAPIKeyCount int
-		RequestCount     int
+		RequestCount      int
 	}{
 		PageData: PageData{
 			Title:      "Dashboard",
@@ -181,7 +188,8 @@ func (s *Server) HandleDashboard(w http.ResponseWriter, r *http.Request) {
 			BaseURL:    s.baseURL,
 			Success:    r.URL.Query().Get("success"),
 		},
-		ImageCount:        imageCount,
+		EnabledImageCount: enabledImageCount,
+		TotalImageCount:   totalImageCount,
 		APIKeyCount:       len(apiKeys),
 		ActiveAPIKeyCount: activeAPIKeyCount,
 		RequestCount:      requestCount,
@@ -428,6 +436,36 @@ func (s *Server) HandleImageDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/admin/images?success=Image deleted successfully", http.StatusSeeOther)
+}
+
+func (s *Server) HandleToggleImage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	filename := r.FormValue("filename")
+	enabledStr := r.FormValue("enabled")
+
+	if filename == "" {
+		http.Redirect(w, r, "/admin/images?error=Invalid filename", http.StatusSeeOther)
+		return
+	}
+
+	enabled := enabledStr == "true"
+
+	if err := s.db.UpdateImageEnabled(filename, enabled); err != nil {
+		log.Printf("Error updating image enabled status: %v", err)
+		http.Redirect(w, r, "/admin/images?error=Failed to update image status", http.StatusSeeOther)
+		return
+	}
+
+	action := "disabled"
+	if enabled {
+		action = "enabled"
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/admin/images?success=Image %s successfully", action), http.StatusSeeOther)
 }
 
 // Helper functions
