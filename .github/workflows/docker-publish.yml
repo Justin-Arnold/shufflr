@@ -84,7 +84,7 @@ jobs:
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
             type=raw,value=latest,enable={{is_default_branch}}
-            type=sha,prefix={{branch}}-
+            type=sha
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -126,7 +126,7 @@ jobs:
             
             ### Quick Start
             ```bash
-            docker run -p 8080:8080 ghcr.io/justin-arnold/shufflr::${{ github.ref_name }}
+            docker run -p 8080:8080 ghcr.io/justin-arnold/shufflr:${{ github.ref_name }}
             ```
             
             Or with docker-compose:
