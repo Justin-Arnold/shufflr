@@ -43,7 +43,6 @@ jobs:
       - name: Build application
         run: |
           CGO_ENABLED=1 go build -v ./cmd/server
-          ./server --help || true  # Test that binary runs
 
   docker:
     needs: build-and-test
