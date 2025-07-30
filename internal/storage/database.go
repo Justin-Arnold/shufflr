@@ -63,10 +63,13 @@ func (db *DB) migrate() error {
 			filename TEXT UNIQUE NOT NULL,
 			size INTEGER NOT NULL,
 			mime_type TEXT NOT NULL,
+			enabled BOOLEAN DEFAULT 1,
 			uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_api_requests_key_id ON api_requests(api_key_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_api_requests_timestamp ON api_requests(timestamp)`,
+		// Add enabled column to existing image_files table if it doesn't exist
+		`ALTER TABLE image_files ADD COLUMN enabled BOOLEAN DEFAULT 1`,
 	}
 
 	for _, query := range queries {
@@ -263,8 +266,8 @@ func (db *DB) GetAPIKeyUsageCount(keyID int) (int, error) {
 
 // Image File methods
 func (db *DB) CreateImageFile(filename string, size int64, mimeType string) (*models.ImageFile, error) {
-	query := `INSERT INTO image_files (filename, size, mime_type) VALUES (?, ?, ?)`
-	result, err := db.conn.Exec(query, filename, size, mimeType)
+	query := `INSERT INTO image_files (filename, size, mime_type, enabled) VALUES (?, ?, ?, ?)`
+	result, err := db.conn.Exec(query, filename, size, mimeType, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create image file record: %w", err)
 	}
@@ -279,12 +282,13 @@ func (db *DB) CreateImageFile(filename string, size int64, mimeType string) (*mo
 		Filename:   filename,
 		Size:       size,
 		MimeType:   mimeType,
+		Enabled:    true,
 		UploadedAt: time.Now(),
 	}, nil
 }
 
 func (db *DB) GetAllImageFiles() ([]*models.ImageFile, error) {
-	query := `SELECT id, filename, size, mime_type, uploaded_at FROM image_files ORDER BY uploaded_at DESC`
+	query := `SELECT id, filename, size, mime_type, enabled, uploaded_at FROM image_files ORDER BY uploaded_at DESC`
 	rows, err := db.conn.Query(query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get image files: %w", err)
@@ -294,7 +298,7 @@ func (db *DB) GetAllImageFiles() ([]*models.ImageFile, error) {
 	var images []*models.ImageFile
 	for rows.Next() {
 		var img models.ImageFile
-		err := rows.Scan(&img.ID, &img.Filename, &img.Size, &img.MimeType, &img.UploadedAt)
+		err := rows.Scan(&img.ID, &img.Filename, &img.Size, &img.MimeType, &img.Enabled, &img.UploadedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan image file: %w", err)
 		}
@@ -305,7 +309,7 @@ func (db *DB) GetAllImageFiles() ([]*models.ImageFile, error) {
 }
 
 func (db *DB) GetRandomImageFiles(count int) ([]*models.ImageFile, error) {
-	query := `SELECT id, filename, size, mime_type, uploaded_at FROM image_files ORDER BY RANDOM() LIMIT ?`
+	query := `SELECT id, filename, size, mime_type, enabled, uploaded_at FROM image_files WHERE enabled = 1 ORDER BY RANDOM() LIMIT ?`
 	rows, err := db.conn.Query(query, count)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get random image files: %w", err)
@@ -315,7 +319,7 @@ func (db *DB) GetRandomImageFiles(count int) ([]*models.ImageFile, error) {
 	var images []*models.ImageFile
 	for rows.Next() {
 		var img models.ImageFile
-		err := rows.Scan(&img.ID, &img.Filename, &img.Size, &img.MimeType, &img.UploadedAt)
+		err := rows.Scan(&img.ID, &img.Filename, &img.Size, &img.MimeType, &img.Enabled, &img.UploadedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan image file: %w", err)
 		}
@@ -326,7 +330,7 @@ func (db *DB) GetRandomImageFiles(count int) ([]*models.ImageFile, error) {
 }
 
 func (db *DB) GetImageFileCount() (int, error) {
-	query := `SELECT COUNT(*) FROM image_files`
+	query := `SELECT COUNT(*) FROM image_files WHERE enabled = 1`
 	var count int
 	err := db.conn.QueryRow(query).Scan(&count)
 	if err != nil {
@@ -351,4 +355,23 @@ func (db *DB) UpdateImageFilename(oldFilename, newFilename string) error {
 		return fmt.Errorf("failed to update image filename: %w", err)
 	}
 	return nil
+}
+
+func (db *DB) UpdateImageEnabled(filename string, enabled bool) error {
+	query := `UPDATE image_files SET enabled = ? WHERE filename = ?`
+	_, err := db.conn.Exec(query, enabled, filename)
+	if err != nil {
+		return fmt.Errorf("failed to update image enabled status: %w", err)
+	}
+	return nil
+}
+
+func (db *DB) GetTotalImageFileCount() (int, error) {
+	query := `SELECT COUNT(*) FROM image_files`
+	var count int
+	err := db.conn.QueryRow(query).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get total image file count: %w", err)
+	}
+	return count, nil
 }
