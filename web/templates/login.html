@@ -1,0 +1,48 @@
+{{define "content"}}
+<div class="max-w-md w-full">
+    <div class="card bg-base-200 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-center justify-center text-2xl mb-6">
+                <svg class="w-8 h-8 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path>
+                </svg>
+                Admin Login
+            </h2>
+
+            {{if .Error}}
+            <div class="alert alert-error mb-4">
+                <svg class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span>{{.Error}}</span>
+            </div>
+            {{end}}
+
+            <form method="POST" action="/admin/login" class="space-y-4">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Username</span>
+                    </label>
+                    <input type="text" name="username" placeholder="Enter username" 
+                           class="input input-bordered w-full" required
+                           value="{{.Username}}" />
+                </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Password</span>
+                    </label>
+                    <input type="password" name="password" placeholder="Enter password" 
+                           class="input input-bordered w-full" required />
+                </div>
+
+                <div class="card-actions">
+                    <button type="submit" class="btn btn-primary w-full">
+                        Login
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{{end}}

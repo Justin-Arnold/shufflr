@@ -1,0 +1,139 @@
+{{define "content"}}
+<div class="max-w-2xl mx-auto space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-bold">Create API Key</h1>
+        <a href="/admin/api-keys" class="btn btn-ghost">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+            </svg>
+            Back to API Keys
+        </a>
+    </div>
+
+    {{if .NewAPIKey}}
+    <!-- Show new API key -->
+    <div class="alert alert-success">
+        <svg class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>API key created successfully!</span>
+    </div>
+
+    <div class="card bg-base-200 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-success">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.029 5.912c-.563-.097-1.159-.026-1.658.235L10 16.5l-2.307-1.794c-.499-.261-1.095-.332-1.658-.235A6 6 0 014 9a6 6 0 016-6z"></path>
+                </svg>
+                Your New API Key
+            </h2>
+            
+            <div class="alert alert-warning">
+                <svg class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L5.732 15.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                </svg>
+                <div>
+                    <div class="font-bold">Important!</div>
+                    <div class="text-sm">Copy this API key now. You won't be able to see it again.</div>
+                </div>
+            </div>
+            
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text font-semibold">API Key</span>
+                </label>
+                <div class="input-group">
+                    <input type="text" id="apiKeyValue" value="{{.NewAPIKey}}" class="input input-bordered flex-1 font-mono text-sm" readonly />
+                    <button type="button" onclick="copyAPIKey()" class="btn btn-square">
+                        <svg id="copyIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-6">
+                <h3 class="font-semibold mb-2">Usage Example</h3>
+                <div class="mockup-code">
+                    <pre data-prefix="$"><code>curl -H "X-API-Key: {{.NewAPIKey}}" \</code></pre>
+                    <pre data-prefix=" "><code>     "{{.BaseURL}}/api/images?count=5"</code></pre>
+                </div>
+            </div>
+
+            <div class="card-actions justify-end mt-6">
+                <a href="/admin/api-keys" class="btn btn-primary">Done</a>
+            </div>
+        </div>
+    </div>
+    {{else}}
+    <!-- Create new API key form -->
+    {{if .Error}}
+    <div class="alert alert-error">
+        <svg class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>{{.Error}}</span>
+    </div>
+    {{end}}
+
+    <div class="card bg-base-200 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title">Create New API Key</h2>
+            <p class="text-base-content/70 mb-4">
+                API keys allow applications to access your images through the API. Give your key a descriptive name to help identify its purpose.
+            </p>
+
+            <form method="POST" action="/admin/api-keys/new" class="space-y-4">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Key Name</span>
+                        <span class="label-text-alt">Required</span>
+                    </label>
+                    <input type="text" name="name" placeholder="e.g., Mobile App, Website, Development" 
+                           class="input input-bordered w-full" required maxlength="100"
+                           value="{{.Name}}" />
+                    <label class="label">
+                        <span class="label-text-alt">Choose a descriptive name to identify this key's purpose</span>
+                    </label>
+                </div>
+
+                <div class="card-actions justify-end">
+                    <a href="/admin/api-keys" class="btn btn-ghost">Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.029 5.912c-.563-.097-1.159-.026-1.658.235L10 16.5l-2.307-1.794c-.499-.261-1.095-.332-1.658-.235A6 6 0 014 9a6 6 0 016-6z"></path>
+                        </svg>
+                        Create API Key
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {{end}}
+</div>
+
+<script>
+function copyAPIKey() {
+    const apiKeyInput = document.getElementById('apiKeyValue');
+    const copyIcon = document.getElementById('copyIcon');
+    
+    apiKeyInput.select();
+    document.execCommand('copy');
+    
+    // Show feedback
+    copyIcon.innerHTML = `
+        <svg class="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+        </svg>
+    `;
+    
+    setTimeout(() => {
+        copyIcon.innerHTML = `
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+            </svg>
+        `;
+    }, 2000);
+}
+</script>
+{{end}}

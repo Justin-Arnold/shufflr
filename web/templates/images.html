@@ -1,0 +1,166 @@
+{{define "content"}}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-bold">Image Management</h1>
+        <a href="/admin/images/upload" class="btn btn-primary">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            Upload Images
+        </a>
+    </div>
+
+    {{if .Success}}
+    <div class="alert alert-success">
+        <svg class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>{{.Success}}</span>
+    </div>
+    {{end}}
+
+    {{if .Error}}
+    <div class="alert alert-error">
+        <svg class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>{{.Error}}</span>
+    </div>
+    {{end}}
+
+    <!-- Stats -->
+    <div class="stats stats-vertical lg:stats-horizontal shadow">
+        <div class="stat">
+            <div class="stat-title">Total Images</div>
+            <div class="stat-value">{{len .Images}}</div>
+        </div>
+        <div class="stat">
+            <div class="stat-title">Total Size</div>
+            <div class="stat-value">{{.TotalSizeFormatted}}</div>
+        </div>
+    </div>
+
+    {{if .Images}}
+    <!-- Image Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        {{range .Images}}
+        <div class="card bg-base-200 shadow-lg">
+            <figure class="px-4 pt-4">
+                <img src="/api/images/{{.Filename}}" alt="{{.Filename}}" 
+                     class="rounded-lg w-full h-32 object-cover cursor-pointer"
+                     onclick="viewImage('{{.Filename}}', '/api/images/{{.Filename}}')" />
+            </figure>
+            <div class="card-body p-4">
+                <h3 class="card-title text-sm truncate" title="{{.Filename}}">{{.Filename}}</h3>
+                <div class="text-xs text-base-content/70">
+                    <div>{{.SizeFormatted}}</div>
+                    <div>{{.UploadedAtFormatted}}</div>
+                </div>
+                <div class="card-actions justify-end">
+                    <div class="dropdown dropdown-end">
+                        <div tabindex="0" role="button" class="btn btn-ghost btn-sm">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                            </svg>
+                        </div>
+                        <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                            <li><a onclick="renameImage('{{.Filename}}')">Rename</a></li>
+                            <li><a onclick="deleteImage('{{.Filename}}')">Delete</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {{end}}
+    </div>
+    {{else}}
+    <div class="text-center py-12">
+        <svg class="mx-auto h-12 w-12 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-base-content/70">No images</h3>
+        <p class="mt-1 text-sm text-base-content/60">Get started by uploading your first image.</p>
+        <div class="mt-6">
+            <a href="/admin/images/upload" class="btn btn-primary">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Upload Images
+            </a>
+        </div>
+    </div>
+    {{end}}
+</div>
+
+<!-- View Image Modal -->
+<dialog id="viewImageModal" class="modal">
+    <div class="modal-box max-w-4xl">
+        <form method="dialog">
+            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+        </form>
+        <img id="viewImageSrc" src="" alt="" class="w-full max-h-96 object-contain" />
+        <h3 id="viewImageName" class="font-bold text-lg mt-4"></h3>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+<!-- Rename Image Modal -->
+<dialog id="renameImageModal" class="modal">
+    <div class="modal-box">
+        <form method="dialog">
+            <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+        </form>
+        <h3 class="font-bold text-lg">Rename Image</h3>
+        <form id="renameForm" method="POST" action="/admin/images/rename" class="space-y-4 mt-4">
+            <input type="hidden" id="renameOldFilename" name="old_filename" />
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">New filename</span>
+                </label>
+                <input type="text" id="renameNewFilename" name="new_filename" class="input input-bordered" required />
+            </div>
+            <div class="modal-action">
+                <button type="submit" class="btn btn-primary">Rename</button>
+                <button type="button" class="btn" onclick="document.getElementById('renameImageModal').close()">Cancel</button>
+            </div>
+        </form>
+    </div>
+</dialog>
+
+<!-- Delete Image Modal -->
+<dialog id="deleteImageModal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Delete Image</h3>
+        <p class="py-4">Are you sure you want to delete <span id="deleteImageName" class="font-semibold"></span>? This action cannot be undone.</p>
+        <div class="modal-action">
+            <form id="deleteForm" method="POST" action="/admin/images/delete">
+                <input type="hidden" id="deleteFilename" name="filename" />
+                <button type="submit" class="btn btn-error">Delete</button>
+                <button type="button" class="btn" onclick="document.getElementById('deleteImageModal').close()">Cancel</button>
+            </form>
+        </div>
+    </div>
+</dialog>
+
+<script>
+function viewImage(filename, src) {
+    document.getElementById('viewImageSrc').src = src;
+    document.getElementById('viewImageName').textContent = filename;
+    document.getElementById('viewImageModal').showModal();
+}
+
+function renameImage(filename) {
+    document.getElementById('renameOldFilename').value = filename;
+    document.getElementById('renameNewFilename').value = filename;
+    document.getElementById('renameImageModal').showModal();
+}
+
+function deleteImage(filename) {
+    document.getElementById('deleteImageName').textContent = filename;
+    document.getElementById('deleteFilename').value = filename;
+    document.getElementById('deleteImageModal').showModal();
+}
+</script>
+{{end}}

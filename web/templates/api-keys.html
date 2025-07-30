@@ -1,0 +1,193 @@
+{{define "content"}}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-bold">API Key Management</h1>
+        <a href="/admin/api-keys/new" class="btn btn-primary">
+            <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            New API Key
+        </a>
+    </div>
+
+    {{if .Success}}
+    <div class="alert alert-success">
+        <svg class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>{{.Success}}</span>
+    </div>
+    {{end}}
+
+    {{if .Error}}
+    <div class="alert alert-error">
+        <svg class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>{{.Error}}</span>
+    </div>
+    {{end}}
+
+    {{if .APIKeys}}
+    <!-- API Keys Table -->
+    <div class="card bg-base-200 shadow-xl">
+        <div class="card-body">
+            <div class="overflow-x-auto">
+                <table class="table table-zebra">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Last Used</th>
+                            <th>Requests</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {{range .APIKeys}}
+                        <tr>
+                            <td>
+                                <div class="font-semibold">{{.Name}}</div>
+                                <div class="text-xs text-base-content/60">ID: {{.ID}}</div>
+                            </td>
+                            <td>
+                                {{if .Enabled}}
+                                <div class="badge badge-success">Active</div>
+                                {{else}}
+                                <div class="badge badge-error">Disabled</div>
+                                {{end}}
+                            </td>
+                            <td>
+                                <div class="text-sm">{{.CreatedAtFormatted}}</div>
+                            </td>
+                            <td>
+                                {{if .LastUsed}}
+                                <div class="text-sm">{{.LastUsedFormatted}}</div>
+                                {{else}}
+                                <div class="text-sm text-base-content/60">Never</div>
+                                {{end}}
+                            </td>
+                            <td>
+                                <div class="text-sm">{{.RequestCount}}</div>
+                            </td>
+                            <td>
+                                <div class="dropdown dropdown-end">
+                                    <div tabindex="0" role="button" class="btn btn-ghost btn-sm">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                                        </svg>
+                                    </div>
+                                    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                                        {{if .Enabled}}
+                                        <li><a onclick="toggleAPIKey({{.ID}}, false)">Disable</a></li>
+                                        {{else}}
+                                        <li><a onclick="toggleAPIKey({{.ID}}, true)">Enable</a></li>
+                                        {{end}}
+                                        <li><a onclick="regenerateAPIKey({{.ID}}, '{{.Name}}')">Regenerate</a></li>
+                                        <li><a onclick="deleteAPIKey({{.ID}}, '{{.Name}}')">Delete</a></li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {{else}}
+    <div class="text-center py-12">
+        <svg class="mx-auto h-12 w-12 text-base-content/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.029 5.912c-.563-.097-1.159-.026-1.658.235L10 16.5l-2.307-1.794c-.499-.261-1.095-.332-1.658-.235A6 6 0 014 9a6 6 0 016-6z"></path>
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-base-content/70">No API keys</h3>
+        <p class="mt-1 text-sm text-base-content/60">Get started by creating your first API key.</p>
+        <div class="mt-6">
+            <a href="/admin/api-keys/new" class="btn btn-primary">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                </svg>
+                Create API Key
+            </a>
+        </div>
+    </div>
+    {{end}}
+</div>
+
+<!-- Toggle API Key Modal -->
+<dialog id="toggleAPIKeyModal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg" id="toggleTitle">Confirm Action</h3>
+        <p class="py-4" id="toggleMessage">Are you sure?</p>
+        <div class="modal-action">
+            <form id="toggleForm" method="POST" action="/admin/api-keys/toggle">
+                <input type="hidden" id="toggleKeyID" name="key_id" />
+                <input type="hidden" id="toggleEnabled" name="enabled" />
+                <button type="submit" class="btn btn-primary" id="toggleConfirmBtn">Confirm</button>
+                <button type="button" class="btn" onclick="document.getElementById('toggleAPIKeyModal').close()">Cancel</button>
+            </form>
+        </div>
+    </div>
+</dialog>
+
+<!-- Regenerate API Key Modal -->
+<dialog id="regenerateAPIKeyModal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Regenerate API Key</h3>
+        <p class="py-4">Are you sure you want to regenerate the API key for <span id="regenerateKeyName" class="font-semibold"></span>? The current key will be invalidated immediately.</p>
+        <div class="modal-action">
+            <form id="regenerateForm" method="POST" action="/admin/api-keys/regenerate">
+                <input type="hidden" id="regenerateKeyID" name="key_id" />
+                <button type="submit" class="btn btn-warning">Regenerate</button>
+                <button type="button" class="btn" onclick="document.getElementById('regenerateAPIKeyModal').close()">Cancel</button>
+            </form>
+        </div>
+    </div>
+</dialog>
+
+<!-- Delete API Key Modal -->
+<dialog id="deleteAPIKeyModal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Delete API Key</h3>
+        <p class="py-4">Are you sure you want to delete the API key <span id="deleteKeyName" class="font-semibold"></span>? This action cannot be undone.</p>
+        <div class="modal-action">
+            <form id="deleteForm" method="POST" action="/admin/api-keys/delete">
+                <input type="hidden" id="deleteKeyID" name="key_id" />
+                <button type="submit" class="btn btn-error">Delete</button>
+                <button type="button" class="btn" onclick="document.getElementById('deleteAPIKeyModal').close()">Cancel</button>
+            </form>
+        </div>
+    </div>
+</dialog>
+
+<script>
+function toggleAPIKey(keyID, enabled) {
+    document.getElementById('toggleKeyID').value = keyID;
+    document.getElementById('toggleEnabled').value = enabled;
+    
+    const title = enabled ? 'Enable API Key' : 'Disable API Key';
+    const message = enabled ? 'Enable this API key?' : 'Disable this API key?';
+    const btnText = enabled ? 'Enable' : 'Disable';
+    
+    document.getElementById('toggleTitle').textContent = title;
+    document.getElementById('toggleMessage').textContent = message;
+    document.getElementById('toggleConfirmBtn').textContent = btnText;
+    document.getElementById('toggleConfirmBtn').className = enabled ? 'btn btn-success' : 'btn btn-warning';
+    
+    document.getElementById('toggleAPIKeyModal').showModal();
+}
+
+function regenerateAPIKey(keyID, keyName) {
+    document.getElementById('regenerateKeyID').value = keyID;
+    document.getElementById('regenerateKeyName').textContent = keyName;
+    document.getElementById('regenerateAPIKeyModal').showModal();
+}
+
+function deleteAPIKey(keyID, keyName) {
+    document.getElementById('deleteKeyID').value = keyID;
+    document.getElementById('deleteKeyName').textContent = keyName;
+    document.getElementById('deleteAPIKeyModal').showModal();
+}
+</script>
+{{end}}

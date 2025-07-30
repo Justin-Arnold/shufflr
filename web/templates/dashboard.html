@@ -1,0 +1,105 @@
+{{define "content"}}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-bold">Dashboard</h1>
+    </div>
+
+    {{if .Success}}
+    <div class="alert alert-success">
+        <svg class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>{{.Success}}</span>
+    </div>
+    {{end}}
+
+    <!-- Stats Overview -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="stat bg-base-200 rounded-lg shadow">
+            <div class="stat-figure text-primary">
+                <svg class="inline-block w-8 h-8 stroke-current" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                </svg>
+            </div>
+            <div class="stat-title">Total Images</div>
+            <div class="stat-value text-primary">{{.ImageCount}}</div>
+            <div class="stat-desc">Available for API</div>
+        </div>
+
+        <div class="stat bg-base-200 rounded-lg shadow">
+            <div class="stat-figure text-secondary">
+                <svg class="inline-block w-8 h-8 stroke-current" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.029 5.912c-.563-.097-1.159-.026-1.658.235L10 16.5l-2.307-1.794c-.499-.261-1.095-.332-1.658-.235A6 6 0 014 9a6 6 0 016-6z"></path>
+                </svg>
+            </div>
+            <div class="stat-title">API Keys</div>
+            <div class="stat-value text-secondary">{{.APIKeyCount}}</div>
+            <div class="stat-desc">{{.ActiveAPIKeyCount}} active</div>
+        </div>
+
+        <div class="stat bg-base-200 rounded-lg shadow">
+            <div class="stat-figure text-accent">
+                <svg class="inline-block w-8 h-8 stroke-current" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                </svg>
+            </div>
+            <div class="stat-title">API Requests</div>
+            <div class="stat-value text-accent">{{.RequestCount}}</div>
+            <div class="stat-desc">Total requests served</div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="card bg-base-200 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title">Quick Actions</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <a href="/admin/images/upload" class="btn btn-primary">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Upload Images
+                </a>
+                <a href="/admin/api-keys/new" class="btn btn-secondary">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.029 5.912c-.563-.097-1.159-.026-1.658.235L10 16.5l-2.307-1.794c-.499-.261-1.095-.332-1.658-.235A6 6 0 014 9a6 6 0 016-6z"></path>
+                    </svg>
+                    New API Key
+                </a>
+                <a href="/admin/images" class="btn btn-accent">
+                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                    Manage Images
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Documentation -->
+    <div class="card bg-base-200 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title">API Usage</h2>
+            <div class="space-y-4">
+                <div>
+                    <h3 class="font-semibold mb-2">Get Random Images</h3>
+                    <div class="mockup-code">
+                        <pre data-prefix="$"><code>curl -H "X-API-Key: YOUR_API_KEY" \</code></pre>
+                        <pre data-prefix=" "><code>     "{{.BaseURL}}/api/images?count=10"</code></pre>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-semibold mb-2">Response Format</h3>
+                    <div class="mockup-code">
+                        <pre data-prefix="{"><code>"images": [</code></pre>
+                        <pre data-prefix=" "><code>  {"url": "/api/images/image1.jpg", "filename": "image1.jpg"}</code></pre>
+                        <pre data-prefix=" "><code>],</code></pre>
+                        <pre data-prefix=" "><code>"count": 10</code></pre>
+                        <pre data-prefix="}"><code></code></pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}
