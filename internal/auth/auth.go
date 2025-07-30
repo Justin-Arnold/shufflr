@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"encoding/hex"
 	"log"
 	"net/http"
 	"shufflr/internal/models"
@@ -28,7 +29,33 @@ type AuthService struct {
 }
 
 func NewAuthService(db *storage.DB, sessionSecret string) *AuthService {
-	store := sessions.NewCookieStore([]byte(sessionSecret))
+	// Decode hex string to bytes for proper session encryption
+	var keyBytes []byte
+	var err error
+	
+	if len(sessionSecret)%2 == 0 && len(sessionSecret) >= 32 {
+		// Try to decode as hex string first
+		keyBytes, err = hex.DecodeString(sessionSecret)
+		if err != nil {
+			// If hex decode fails, use the string directly but truncate/pad to 32 bytes
+			keyBytes = []byte(sessionSecret)
+		}
+	} else {
+		// Use the string directly
+		keyBytes = []byte(sessionSecret)
+	}
+	
+	// Ensure key is exactly 32 bytes (required for AES-256)
+	if len(keyBytes) > 32 {
+		keyBytes = keyBytes[:32]
+	} else if len(keyBytes) < 32 {
+		// Pad with zeros if too short
+		padded := make([]byte, 32)
+		copy(padded, keyBytes)
+		keyBytes = padded
+	}
+	
+	store := sessions.NewCookieStore(keyBytes)
 	store.Options = &sessions.Options{
 		Path:     "/",
 		MaxAge:   24 * 60 * 60, // 24 hours
