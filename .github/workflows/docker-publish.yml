@@ -66,11 +66,17 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Create lowercase image name
+        id: image
+        run: |
+          IMAGE_NAME_LOWER=$(echo "${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
+          echo "name_lower=${IMAGE_NAME_LOWER}" >> $GITHUB_OUTPUT
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ steps.image.outputs.name_lower }}
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -102,12 +108,12 @@ jobs:
         run: |
           IMAGE_NAME_LOWER=$(echo "${{ env.IMAGE_NAME }}" | tr '[:upper:]' '[:lower:]')
           # Pull and test the AMD64 image (since we're on AMD64 runner)
-          docker pull ${{ env.REGISTRY }}/${ IMAGE_NAME_LOWER }:${{ github.sha }}
+          docker pull ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}:${{ github.sha }}
           
           # Run a quick smoke test
           docker run --rm -d --name shufflr-test \
             -p 8080:8080 \
-            ${{ env.REGISTRY }}/${ IMAGE_NAME_LOWER }:${{ github.sha }}
+            ${{ env.REGISTRY }}/${IMAGE_NAME_LOWER}:${{ github.sha }}
           
           # Wait for the service to start
           sleep 10
@@ -142,7 +148,7 @@ jobs:
           image-ref: ${{ steps.image.outputs.name_lower }}:${{ github.sha }}
           format: 'sarif'
           output: 'trivy-results.sarif'
-    
+
       - name: Upload Trivy scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v3
         if: always()
@@ -172,12 +178,12 @@ jobs:
             ## Changes in ${{ github.ref_name }}
             
             ### Docker Images
-            - `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}` (linux/amd64 with ARM64 emulation support)
-            - `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest` (linux/amd64 with ARM64 emulation support)
+            - `ghcr.io/justin-arnold/shufflr:${{ github.ref_name }}` (linux/amd64 with ARM64 emulation support)
+            - `ghcr.io/justin-arnold/shufflr:latest` (linux/amd64 with ARM64 emulation support)
             
             ### Quick Start
             ```bash
-            docker run -p 8080:8080 ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
+            docker run -p 8080:8080 ghcr.io/justin-arnold/shufflr::${{ github.ref_name }}
             ```
             
             Or with docker-compose:
