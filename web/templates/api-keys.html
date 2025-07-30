@@ -1,7 +1,17 @@
 {{define "content"}}
 <div class="space-y-6">
     <div class="flex justify-between items-center">
-        <h1 class="text-3xl font-bold">API Key Management</h1>
+        <!-- Search Bar -->
+        <div class="form-control">
+            <div class="input-group flex items-center gap-2">
+                <input type="text" id="apiKeySearch" placeholder="Search API keys by name..." class="input input-bordered flex-1" oninput="filterAPIKeys()" />
+                <button class="btn btn-square" onclick="clearAPIKeySearch()">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
         <a href="/admin/api-keys/new" class="btn btn-primary">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -29,18 +39,6 @@
     {{end}}
 
     {{if .APIKeys}}
-    <!-- Search Bar -->
-    <div class="form-control">
-        <div class="input-group">
-            <input type="text" id="apiKeySearch" placeholder="Search API keys by name..." class="input input-bordered flex-1" oninput="filterAPIKeys()" />
-            <button class="btn btn-square" onclick="clearAPIKeySearch()">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-            </button>
-        </div>
-    </div>
-
     <!-- API Keys Table -->
     <div class="card bg-base-200 shadow-xl">
         <div class="card-body">
