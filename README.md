@@ -1,7 +1,7 @@
 # Shufflr - Self-Hosted Random Image API Service
 
-[![Build and Publish Docker Image](https://github.com/YOUR_USERNAME/shufflr/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/YOUR_USERNAME/shufflr/actions/workflows/docker-publish.yml)
-[![Docker Image](https://img.shields.io/badge/docker-ghcr.io%2FYOUR_USERNAME%2Fshufflr-blue)](https://github.com/YOUR_USERNAME/shufflr/pkgs/container/shufflr)
+[![Build and Publish Docker Image](https://github.com/Justin-Arnold/shufflr/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/Justin-Arnold/shufflr/actions/workflows/docker-publish.yml)
+[![Docker Image](https://img.shields.io/badge/docker-ghcr.io%2FJustin--Arnold%2Fshufflr-blue)](https://github.com/Justin-Arnold/shufflr/pkgs/container/shufflr)
 
 Shufflr is a lightweight, self-hosted random image API service built in Go. It provides a simple REST API for retrieving random images from your collection, along with a clean web interface for managing images and API keys.
 
@@ -27,12 +27,12 @@ Shufflr is a lightweight, self-hosted random image API service built in Go. It p
      --name shufflr \
      -p 8080:8080 \
      -v shufflr_data:/app/data \
-     ghcr.io/YOUR_USERNAME/shufflr:latest
+     ghcr.io/justin-arnold/shufflr:latest
    ```
 
 2. **Or use Docker Compose:**
    ```bash
-   curl -O https://raw.githubusercontent.com/YOUR_USERNAME/shufflr/main/docker-compose.yml
+   curl -O https://raw.githubusercontent.com/Justin-Arnold/shufflr/main/docker-compose.yml
    docker-compose up -d
    ```
 
@@ -48,7 +48,7 @@ Shufflr is a lightweight, self-hosted random image API service built in Go. It p
 
 1. **Download the latest release:**
    ```bash
-   curl -L https://github.com/YOUR_USERNAME/shufflr/releases/latest/download/shufflr-linux-amd64 -o shufflr
+   curl -L https://github.com/Justin-Arnold/shufflr/releases/latest/download/shufflr-linux-amd64 -o shufflr
    chmod +x shufflr
    ```
 
@@ -65,7 +65,7 @@ Shufflr is a lightweight, self-hosted random image API service built in Go. It p
 
 2. **Clone and build:**
    ```bash
-   git clone https://github.com/YOUR_USERNAME/shufflr.git
+   git clone https://github.com/Justin-Arnold/shufflr.git
    cd shufflr
    go mod download
    go build -o shufflr ./cmd/server
@@ -165,7 +165,7 @@ docker run -d \
   -p 8080:8080 \
   -v shufflr_data:/app/data \
   -e BASE_URL=https://your-domain.com \
-  ghcr.io/YOUR_USERNAME/shufflr:latest
+  ghcr.io/justin-arnold/shufflr:latest
 ```
 
 ### Production Deployment with Docker Compose
@@ -175,7 +175,7 @@ version: '3.8'
 
 services:
   shufflr:
-    image: ghcr.io/YOUR_USERNAME/shufflr:latest
+    image: ghcr.io/justin-arnold/shufflr:latest
     container_name: shufflr
     restart: unless-stopped
     ports:
@@ -253,7 +253,7 @@ Access the admin interface at `http://your-domain/admin`
 ### Setup
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/shufflr.git
+git clone https://github.com/Justin-Arnold/shufflr.git
 cd shufflr
 go mod download
 ```
@@ -342,9 +342,9 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 📞 Support
 
-- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/YOUR_USERNAME/shufflr/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/YOUR_USERNAME/shufflr/discussions)
-- 📖 **Documentation**: [Wiki](https://github.com/YOUR_USERNAME/shufflr/wiki)
+- 🐛 **Bug Reports**: [GitHub Issues](https://github.com/Justin-Arnold/shufflr/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/Justin-Arnold/shufflr/discussions)
+- 📖 **Documentation**: [Wiki](https://github.com/Justin-Arnold/shufflr/wiki)
 
 ---
 
