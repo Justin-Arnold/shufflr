@@ -60,8 +60,13 @@ func main() {
 			apiServer.HandleOptions(w, r)
 			return
 		}
-		// Get random images (requires API key)
-		authService.RequireAPIKey(apiServer.HandleRandomImages)(w, r)
+		// Get random images (conditionally requires API key based on settings)
+		requireAPIKey, err := db.GetSetting("require_api_key_for_images")
+		if err != nil || requireAPIKey == "true" {
+			authService.RequireAPIKey(apiServer.HandleRandomImages)(w, r)
+		} else {
+			apiServer.HandleRandomImages(w, r)
+		}
 	})
 	
 	mux.HandleFunc("/api/images/", func(w http.ResponseWriter, r *http.Request) {
@@ -69,7 +74,7 @@ func main() {
 			apiServer.HandleOptions(w, r)
 			return
 		}
-		// Serve individual image
+		// Serve individual image (API key requirement handled within the handler)
 		apiServer.HandleServeImage(w, r)
 	})
 
@@ -113,6 +118,8 @@ func main() {
 	mux.HandleFunc("/admin/api-keys/toggle", authService.RequireAdminAuth(adminServer.HandleToggleAPIKey))
 	mux.HandleFunc("/admin/api-keys/regenerate", authService.RequireAdminAuth(adminServer.HandleRegenerateAPIKey))
 	mux.HandleFunc("/admin/api-keys/delete", authService.RequireAdminAuth(adminServer.HandleDeleteAPIKey))
+
+	mux.HandleFunc("/admin/settings", authService.RequireAdminAuth(adminServer.HandleSettings))
 
 	// Add request logging middleware
 	handler := loggingMiddleware(mux)
