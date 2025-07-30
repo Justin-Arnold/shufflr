@@ -45,11 +45,6 @@ jobs:
           CGO_ENABLED=1 go build -v ./cmd/server
 
   docker:
-    strategy:
-      matrix:
-        include:
-          - platform: linux/amd64
-          - platform: linux/arm64
     runs-on: ubuntu-latest
     needs: build-and-test
     permissions:
@@ -84,66 +79,21 @@ jobs:
             type=semver,pattern={{major}}
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,prefix={{branch}}-
-          flavor: |
-            suffix=-${{ matrix.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           file: ./Dockerfile
-          platforms: ${{ matrix.platform }}
+          platforms: linux/amd64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.platform }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.platform }}
-
-  create-manifest:
-    needs: docker
-    runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request'
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - name: Log in to Container Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract metadata for manifest
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=raw,value=latest,enable={{is_default_branch}}
-            type=sha,prefix={{branch}}-
-
-      - name: Create and push multi-platform manifest
-        run: |
-          # Extract just the tag names without suffixes for the manifest
-          TAGS="${{ steps.meta.outputs.tags }}"
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           
-          for TAG in $TAGS; do
-            echo "Creating manifest for $TAG"
-            docker buildx imagetools create \
-              --tag $TAG \
-              ${TAG}-amd64 \
-              ${TAG}-arm64
-          done
-
   test-docker:
-    needs: create-manifest
+    needs: docker
     runs-on: ubuntu-latest
     if: github.event_name != 'pull_request'
 
@@ -168,7 +118,7 @@ jobs:
           docker stop shufflr-test
 
   security-scan:
-    needs: create-manifest
+    needs: docker
     runs-on: ubuntu-latest
     if: github.event_name != 'pull_request'
     permissions:
@@ -193,7 +143,7 @@ jobs:
           sarif_file: 'trivy-results.sarif'
 
   release:
-    needs: [build-and-test, test-docker, security-scan]
+    needs: [build-and-test, test-docker, security-scan] 
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     permissions:
@@ -215,8 +165,8 @@ jobs:
             ## Changes in ${{ github.ref_name }}
             
             ### Docker Images
-            - `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}` (multi-platform: linux/amd64, linux/arm64)
-            - `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest` (multi-platform: linux/amd64, linux/arm64)
+            - `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}` (linux/amd64 with ARM64 emulation support)
+            - `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest` (linux/amd64 with ARM64 emulation support)
             
             ### Quick Start
             ```bash
