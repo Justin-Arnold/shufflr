@@ -11,8 +11,11 @@ services:
       - BASE_URL=${SHUFFLR_BASE_URL:-http://localhost:8080}
       - SESSION_SECRET=${SHUFFLR_SESSION_SECRET}
     volumes:
-      # Persist database and uploaded images
-      - shufflr_data:/app/data
+      # Mount host directories for direct access to data
+      - ${SHUFFLR_DATA_DIR:-./shufflr-data}:/app/data
+      # Alternative: separate mounts for more granular control
+      # - ${SHUFFLR_DATABASE_DIR:-./shufflr-data}:/app/data
+      # - ${SHUFFLR_UPLOAD_DIR_HOST:-./shufflr-data/uploads}:/app/data/uploads
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
@@ -23,9 +26,10 @@ services:
     networks:
       - shufflr_network
 
-volumes:
-  shufflr_data:
-    driver: local
+# Remove the named volume since we're using bind mounts now
+# volumes:
+#   shufflr_data:
+#     driver: local
 
 networks:
   shufflr_network:
