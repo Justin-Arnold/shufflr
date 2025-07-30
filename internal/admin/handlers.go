@@ -734,6 +734,108 @@ func (s *Server) HandleDeleteAPIKey(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, "/admin/api-keys?success=API key deleted successfully", http.StatusSeeOther)
 }
 
+// Settings management
+func (s *Server) HandleSettings(w http.ResponseWriter, r *http.Request) {
+	user := auth.GetAdminFromContext(r.Context())
+	
+	data := struct {
+		PageData
+		RequireAPIKeyForImages bool
+		DefaultImageCount      string
+		MaxImageCount          string
+		CORSEnabled            bool
+		CORSOrigins            string
+	}{
+		PageData: PageData{
+			Title:      "Settings",
+			ShowNav:    true,
+			ActivePage: "settings",
+			Username:   user.Username,
+			Success:    r.URL.Query().Get("success"),
+			Error:      r.URL.Query().Get("error"),
+		},
+	}
+
+	if r.Method == http.MethodPost {
+		// Handle form submission
+		requireAPIKey := r.FormValue("require_api_key_for_images") == "on"
+		defaultImageCount := r.FormValue("default_image_count")
+		maxImageCount := r.FormValue("max_image_count")
+		corsEnabled := r.FormValue("cors_enabled") == "on"
+		corsOrigins := r.FormValue("cors_origins")
+
+		// Validate input
+		if defaultImageCount == "" {
+			defaultImageCount = "20"
+		}
+		if maxImageCount == "" {
+			maxImageCount = "100"
+		}
+		if corsOrigins == "" {
+			corsOrigins = "*"
+		}
+
+		// Validate numeric values
+		if defaultCount, err := strconv.Atoi(defaultImageCount); err != nil || defaultCount < 1 {
+			data.Error = "Default image count must be a positive number"
+		} else if maxCount, err := strconv.Atoi(maxImageCount); err != nil || maxCount < 1 {
+			data.Error = "Maximum image count must be a positive number"
+		} else if defaultCount > maxCount {
+			data.Error = "Default image count cannot be greater than maximum image count"
+		} else {
+			// Save settings
+			settingsToSave := map[string]string{
+				"require_api_key_for_images": fmt.Sprintf("%t", requireAPIKey),
+				"default_image_count":        defaultImageCount,
+				"max_image_count":           maxImageCount,
+				"cors_enabled":              fmt.Sprintf("%t", corsEnabled),
+				"cors_origins":              corsOrigins,
+			}
+
+			var saveError bool
+			for key, value := range settingsToSave {
+				if err := s.db.SetSetting(key, value); err != nil {
+					log.Printf("Error saving setting %s: %v", key, err)
+					saveError = true
+				}
+			}
+
+			if saveError {
+				data.Error = "Failed to save some settings"
+			} else {
+				http.Redirect(w, r, "/admin/settings?success=Settings saved successfully", http.StatusSeeOther)
+				return
+			}
+		}
+
+		// Preserve form values on error
+		data.RequireAPIKeyForImages = requireAPIKey
+		data.DefaultImageCount = defaultImageCount
+		data.MaxImageCount = maxImageCount
+		data.CORSEnabled = corsEnabled
+		data.CORSOrigins = corsOrigins
+	} else {
+		// Load current settings
+		if val, err := s.db.GetSetting("require_api_key_for_images"); err == nil {
+			data.RequireAPIKeyForImages = val == "true"
+		}
+		if val, err := s.db.GetSetting("default_image_count"); err == nil {
+			data.DefaultImageCount = val
+		}
+		if val, err := s.db.GetSetting("max_image_count"); err == nil {
+			data.MaxImageCount = val
+		}
+		if val, err := s.db.GetSetting("cors_enabled"); err == nil {
+			data.CORSEnabled = val == "true"
+		}
+		if val, err := s.db.GetSetting("cors_origins"); err == nil {
+			data.CORSOrigins = val
+		}
+	}
+
+	s.renderTemplate(w, "settings.html", data)
+}
+
 func formatFileSize(bytes int64) string {
 	const unit = 1024
 	if bytes < unit {

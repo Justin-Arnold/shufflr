@@ -35,3 +35,9 @@ type ImageFile struct {
 	Enabled  bool   `json:"enabled"`
 	UploadedAt time.Time `json:"uploaded_at"`
 }
+
+type Setting struct {
+	ID    int    `json:"id"`
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
