@@ -28,11 +28,25 @@
     </div>
     {{end}}
 
+    <!-- Search Bar -->
+    {{if .Images}}
+    <div class="form-control">
+        <div class="input-group">
+            <input type="text" id="imageSearch" placeholder="Search images by filename..." class="input input-bordered flex-1" oninput="filterImages()" />
+            <button class="btn btn-square" onclick="clearSearch()">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+    </div>
+    {{end}}
+
     <!-- Stats -->
     <div class="stats stats-vertical lg:stats-horizontal shadow">
         <div class="stat">
             <div class="stat-title">Total Images</div>
-            <div class="stat-value">{{len .Images}}</div>
+            <div class="stat-value" id="visibleImageCount">{{len .Images}}</div>
         </div>
         <div class="stat">
             <div class="stat-title">Total Size</div>
@@ -42,9 +56,9 @@
 
     {{if .Images}}
     <!-- Image Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" id="imageGrid">
         {{range .Images}}
-        <div class="card bg-base-200 shadow-lg {{if not .Enabled}}opacity-50{{end}}">
+        <div class="card bg-base-200 shadow-lg {{if not .Enabled}}opacity-50{{end}} image-card" data-filename="{{.Filename}}">
             <figure class="px-4 pt-4 relative">
                 <img src="/api/images/{{.Filename}}" alt="{{.Filename}}" 
                      class="rounded-lg w-full h-32 object-cover cursor-pointer {{if not .Enabled}}grayscale{{end}}"
@@ -190,6 +204,29 @@ function toggleImage(filename, enabled) {
     form.appendChild(enabledInput);
     document.body.appendChild(form);
     form.submit();
+}
+
+function filterImages() {
+    const searchTerm = document.getElementById('imageSearch').value.toLowerCase();
+    const imageCards = document.querySelectorAll('.image-card');
+    let visibleCount = 0;
+    
+    imageCards.forEach(card => {
+        const filename = card.getAttribute('data-filename').toLowerCase();
+        if (filename.includes(searchTerm)) {
+            card.style.display = '';
+            visibleCount++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    
+    document.getElementById('visibleImageCount').textContent = visibleCount;
+}
+
+function clearSearch() {
+    document.getElementById('imageSearch').value = '';
+    filterImages();
 }
 </script>
 {{end}}
