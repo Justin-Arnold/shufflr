@@ -1,0 +1,50 @@
+# Git
+.git
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# Docker files
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Development files
+.env
+.env.local
+.env.example
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Runtime data
+shufflr.db
+uploads/
+data/
+
+# Build artifacts
+shufflr
+*.exe
+
+# Go build cache
+.gocache
+
+# Test files
+*_test.go
+testdata/
+
+# CI/CD
+.github/
+.circleci/
