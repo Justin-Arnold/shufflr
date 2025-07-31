@@ -148,12 +148,12 @@
                                 <div id="api-menu-dropdown-{{.ID}}" class="fixed top-0 left-0 z-[999]">
                                     <ul class="menu p-2 shadow bg-base-300 rounded-box w-52">
                                         {{if .Enabled}}
-                                        <li><a onclick="toggleAPIKey(`{{.ID}}`, false)">Disable</a></li>
+                                        <li><a onclick="toggleAPIKey({{.ID}}, false)">Disable</a></li>
                                         {{else}}
-                                        <li><a onclick="toggleAPIKey(`{{.ID}}`, true)">Enable</a></li>
+                                        <li><a onclick="toggleAPIKey({{.ID}}, true)">Enable</a></li>
                                         {{end}}
-                                        <li><a onclick="regenerateAPIKey(`{{.ID}}`, '{{.Name}}')">Regenerate</a></li>
-                                        <li><a onclick="deleteAPIKey(`{{.ID}}`, '{{.Name}}')">Delete</a></li>
+                                        <li><a onclick="regenerateAPIKey({{.ID}}, '{{.Name}}')">Regenerate</a></li>
+                                        <li><a onclick="deleteAPIKey({{.ID}}, '{{.Name}}')">Delete</a></li>
                                     </ul>
                                 </div>
                             </td>
