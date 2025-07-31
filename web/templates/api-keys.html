@@ -1,10 +1,11 @@
 {{define "content"}}
 <div class="space-y-6">
+    {{if .APIKeys}}
     <div class="flex justify-between items-center">
         <!-- Search Bar -->
         <div class="form-control">
             <div class="input-group flex items-center gap-2">
-                <input type="text" id="apiKeySearch" placeholder="Search API keys by name..." class="input input-bordered flex-1" oninput="filterAPIKeys()" />
+                <input type="text" id="apiKeySearch" placeholder="Search API keys by name..." class="input input-bordered flex-1 w-80" oninput="filterAPIKeys()" />
                 <button class="btn btn-square" onclick="clearAPIKeySearch()">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -19,6 +20,7 @@
             New API Key
         </a>
     </div>
+    {{end}}
 
     {{if .Success}}
     <div class="alert alert-success">
@@ -138,20 +140,20 @@
                                 <div class="text-sm">{{.RequestCount}}</div>
                             </td>
                             <td>
-                                <div class="dropdown dropdown-end">
-                                    <div tabindex="0" role="button" class="btn btn-ghost btn-sm">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
-                                        </svg>
-                                    </div>
-                                    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                                <button class="btn btn-ghost btn-sm" id="api-menu-{{.ID}}">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                                    </svg>
+                                </button>
+                                <div id="api-menu-dropdown-{{.ID}}" class="fixed top-0 left-0 z-[999]">
+                                    <ul class="menu p-2 shadow bg-base-300 rounded-box w-52">
                                         {{if .Enabled}}
-                                        <li><a onclick="toggleAPIKey({{.ID}}, false)">Disable</a></li>
+                                        <li><a onclick="toggleAPIKey(`{{.ID}}`, false)">Disable</a></li>
                                         {{else}}
-                                        <li><a onclick="toggleAPIKey({{.ID}}, true)">Enable</a></li>
+                                        <li><a onclick="toggleAPIKey(`{{.ID}}`, true)">Enable</a></li>
                                         {{end}}
-                                        <li><a onclick="regenerateAPIKey({{.ID}}, '{{.Name}}')">Regenerate</a></li>
-                                        <li><a onclick="deleteAPIKey({{.ID}}, '{{.Name}}')">Delete</a></li>
+                                        <li><a onclick="regenerateAPIKey(`{{.ID}}`, '{{.Name}}')">Regenerate</a></li>
+                                        <li><a onclick="deleteAPIKey(`{{.ID}}`, '{{.Name}}')">Delete</a></li>
                                     </ul>
                                 </div>
                             </td>
@@ -364,5 +366,68 @@ function clearAPIKeySearch() {
     document.getElementById('apiKeySearch').value = '';
     filterAPIKeys();
 }
+
+// Initialize API key dropdown menus
+document.addEventListener('DOMContentLoaded', () => {
+    const offset = window.FloatingUIDOM.offset;
+    const flip = window.FloatingUIDOM.flip;
+    const shift = window.FloatingUIDOM.shift;
+    const autoPlacement = window.FloatingUIDOM.autoPlacement;
+    const autoUpdate = window.FloatingUIDOM.autoUpdate;
+
+    // Find all API menu buttons
+    document.querySelectorAll('[id^="api-menu-"]').forEach(button => {
+        const apiId = button.id.replace('api-menu-', '');
+        const dropdown = document.querySelector(`#api-menu-dropdown-${apiId}`);
+        
+        if (!dropdown) return;
+        
+        dropdown.classList.add('hidden');
+        let cleanup = () => {};
+
+        function updatePosition() {
+            window.FloatingUIDOM.computePosition(button, dropdown, {
+                middleware: [
+                    autoPlacement({
+                        crossAxis: true,
+                        alignment: 'start',
+                    })
+                ]
+            }).then(({x, y}) => {
+                Object.assign(dropdown.style, {
+                    left: `${x}px`,
+                    top: `${y}px`,
+                });
+            });
+        }
+        
+        button.addEventListener('click', (e) => {
+            e.stopPropagation();
+            
+            // Close other dropdowns first
+            document.querySelectorAll('[id^="api-menu-dropdown-"]').forEach(otherDropdown => {
+                if (otherDropdown !== dropdown && !otherDropdown.classList.contains('hidden')) {
+                    otherDropdown.classList.add('hidden');
+                }
+            });
+            
+            if (dropdown.classList.contains('hidden')) {
+                dropdown.classList.remove('hidden');
+                cleanup = autoUpdate(button, dropdown, updatePosition);
+            } else {
+                dropdown.classList.add('hidden');
+                cleanup();
+            }
+        });
+        
+        // Close on outside click
+        document.addEventListener('click', (e) => {
+            if (!button.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+                cleanup();
+            }
+        });
+    });
+});
 </script>
 {{end}}

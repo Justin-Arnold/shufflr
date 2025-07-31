@@ -35,7 +35,7 @@ WORKDIR /app
 # Copy binary from builder stage
 COPY --from=builder /app/shufflr .
 
-# Copy templates
+# Copy templates and static files
 COPY --from=builder /app/web ./web
 
 # Create directories for data with proper permissions

@@ -51,6 +51,9 @@ func main() {
 	// Setup routes
 	mux := http.NewServeMux()
 
+	// Static files (favicon, etc.)
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static/"))))
+
 	// Health check
 	mux.HandleFunc("/health", apiServer.HandleHealth)
 
