@@ -60,13 +60,14 @@
                     <div>{{.UploadedAtFormatted}}</div>
                 </div>
                 <div class="card-actions justify-end">
-                    <div class="dropdown dropdown-end">
-                        <div tabindex="0" role="button" class="btn btn-ghost btn-sm">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
-                            </svg>
-                        </div>
-                        <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                    <button class="btn btn-ghost btn-sm" id="image-menu-{{.ID}}">
+                    
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                        </svg>
+                    </button>
+                    <div id="image-menu-dropdown-{{.ID}}" class="absolute top-0 left-0 z-[999]">
+                        <ul class="menu p-2 shadow bg-base-300 rounded-box w-52">
                             {{if .Enabled}}
                             <li><a onclick="toggleImage('{{.Filename}}', false)">Disable</a></li>
                             {{else}}
@@ -214,5 +215,74 @@ function clearSearch() {
     document.getElementById('imageSearch').value = '';
     filterImages();
 }
+
+// Initialize image dropdown menus
+document.addEventListener('DOMContentLoaded', () => {
+    const offset = window.FloatingUIDOM.offset;
+    const flip = window.FloatingUIDOM.flip;
+    const shift = window.FloatingUIDOM.shift;
+    const autoPlacement = window.FloatingUIDOM.autoPlacement;
+    const autoUpdate = window.FloatingUIDOM.autoUpdate;
+
+    // Find all image menu buttons
+    document.querySelectorAll('[id^="image-menu-"]').forEach(button => {
+        if (button.id.startsWith('image-menu-dropdown')) return;
+
+        const filename = button.id.replace('image-menu-', '');
+        const dropdown = document.querySelector(`#image-menu-dropdown-${filename}`);
+        if (!dropdown) return;
+        
+        
+        dropdown.classList.add('hidden');
+        let cleanup = () => {};
+
+        function updatePosition() {
+            window.FloatingUIDOM.computePosition(button, dropdown, {
+                middleware: [
+                    autoPlacement({
+                        crossAxis: true,
+                        alignment: 'start',
+                    }),
+                    offset({
+                        mainAxis: 8, // 8px from the button
+                        crossAxis: 0,
+                    }),
+                ]
+            }).then(({x, y}) => {
+                Object.assign(dropdown.style, {
+                    left: `${x}px`,
+                    top: `${y}px`,
+                });
+            });
+        }
+        
+        button.addEventListener('click', (e) => {
+            e.stopPropagation();
+            
+            // Close other dropdowns first
+            document.querySelectorAll('[id^="image-menu-dropdown-"]').forEach(otherDropdown => {
+                if (otherDropdown !== dropdown && !otherDropdown.classList.contains('hidden')) {
+                    otherDropdown.classList.add('hidden');
+                }
+            });
+            
+            if (dropdown.classList.contains('hidden')) {
+                dropdown.classList.remove('hidden');
+                cleanup = autoUpdate(button, dropdown, updatePosition);
+            } else {
+                dropdown.classList.add('hidden');
+                cleanup();
+            }
+        });
+        
+        // Close on outside click
+        document.addEventListener('click', (e) => {
+            if (!button.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+                cleanup();
+            }
+        });
+    });
+});
 </script>
 {{end}}
