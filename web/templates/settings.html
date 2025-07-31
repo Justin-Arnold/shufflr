@@ -1,0 +1,109 @@
+{{define "content"}}
+<div class="space-y-6">
+    <div class="flex justify-between items-center">
+        <h1 class="text-3xl font-bold">Settings</h1>
+    </div>
+
+    {{if .Success}}
+    <div class="alert alert-success">
+        <svg class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>{{.Success}}</span>
+    </div>
+    {{end}}
+
+    {{if .Error}}
+    <div class="alert alert-error">
+        <svg class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>{{.Error}}</span>
+    </div>
+    {{end}}
+
+    <form method="POST" class="space-y-6">
+        <!-- API Settings -->
+        <div class="card bg-base-200 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">API Settings</h2>
+                
+                <div class="form-control">
+                    <label class="label cursor-pointer">
+                        <span class="label-text">
+                            <div class="flex flex-col">
+                                <span class="font-semibold">Require API Key for Image Access</span>
+                                <span class="text-sm text-base-content/70">When enabled, users must provide a valid API key to view images. When disabled, images are publicly accessible.</span>
+                            </div>
+                        </span>
+                        <input type="checkbox" name="require_api_key_for_images" class="toggle toggle-primary" {{if .RequireAPIKeyForImages}}checked{{end}} />
+                    </label>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Default Image Count</span>
+                        </label>
+                        <input type="number" name="default_image_count" value="{{.DefaultImageCount}}" class="input input-bordered" min="1" max="1000" />
+                        <label class="label">
+                            <span class="label-text-alt">Number of images returned when count parameter is not specified</span>
+                        </label>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Maximum Image Count</span>
+                        </label>
+                        <input type="number" name="max_image_count" value="{{.MaxImageCount}}" class="input input-bordered" min="1" max="1000" />
+                        <label class="label">
+                            <span class="label-text-alt">Maximum number of images that can be requested at once</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CORS Settings -->
+        <div class="card bg-base-200 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">CORS Settings</h2>
+                
+                <div class="form-control">
+                    <label class="label cursor-pointer">
+                        <span class="label-text">
+                            <div class="flex flex-col">
+                                <span class="font-semibold">Enable CORS</span>
+                                <span class="text-sm text-base-content/70">Allow cross-origin requests from web browsers</span>
+                            </div>
+                        </span>
+                        <input type="checkbox" name="cors_enabled" class="toggle toggle-primary" {{if .CORSEnabled}}checked{{end}} />
+                    </label>
+                </div>
+
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Allowed Origins</span>
+                    </label>
+                    <input type="text" name="cors_origins" value="{{.CORSOrigins}}" class="input input-bordered" placeholder="*" />
+                    <label class="label">
+                        <span class="label-text-alt">Comma-separated list of allowed origins. Use * for all origins.</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex justify-end">
+            <button type="submit" class="btn btn-primary">
+                <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                </svg>
+                Save Settings
+            </button>
+        </div>
+    </form>
+</div>
+{{end}}

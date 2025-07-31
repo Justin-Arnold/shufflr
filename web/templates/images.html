@@ -1,7 +1,18 @@
 {{define "content"}}
 <div class="space-y-6">
+    {{if .Images}}
     <div class="flex justify-between items-center">
-        <h1 class="text-3xl font-bold">Image Management</h1>
+        <!-- Search Bar -->
+        <div class="form-control">
+            <div class="input-group flex items-center gap-2"> 
+                <input type="text" id="imageSearch" placeholder="Search images by filename..." class="input input-bordered flex-1 w-80" oninput="filterImages()" />
+                <button class="btn btn-square" onclick="clearSearch()">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
         <a href="/admin/images/upload" class="btn btn-primary">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -9,6 +20,7 @@
             Upload Images
         </a>
     </div>
+    {{end}}
 
     {{if .Success}}
     <div class="alert alert-success">
@@ -28,27 +40,18 @@
     </div>
     {{end}}
 
-    <!-- Stats -->
-    <div class="stats stats-vertical lg:stats-horizontal shadow">
-        <div class="stat">
-            <div class="stat-title">Total Images</div>
-            <div class="stat-value">{{len .Images}}</div>
-        </div>
-        <div class="stat">
-            <div class="stat-title">Total Size</div>
-            <div class="stat-value">{{.TotalSizeFormatted}}</div>
-        </div>
-    </div>
-
     {{if .Images}}
     <!-- Image Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" id="imageGrid">
         {{range .Images}}
-        <div class="card bg-base-200 shadow-lg">
-            <figure class="px-4 pt-4">
-                <img src="/api/images/{{.Filename}}" alt="{{.Filename}}" 
-                     class="rounded-lg w-full h-32 object-cover cursor-pointer"
-                     onclick="viewImage('{{.Filename}}', '/api/images/{{.Filename}}')" />
+        <div class="card bg-base-200 shadow-lg {{if not .Enabled}}opacity-50{{end}} image-card" data-filename="{{.Filename}}">
+            <figure class="px-4 pt-4 relative">
+                <img src="/admin/images/serve/{{.Filename}}" alt="{{.Filename}}" 
+                     class="rounded-lg w-full h-32 object-cover cursor-pointer {{if not .Enabled}}grayscale{{end}}"
+                     onclick="viewImage('{{.Filename}}', '/admin/images/serve/{{.Filename}}')" />
+                {{if not .Enabled}}
+                <div class="absolute top-2 left-2 badge badge-error badge-sm">Disabled</div>
+                {{end}}
             </figure>
             <div class="card-body p-4">
                 <h3 class="card-title text-sm truncate" title="{{.Filename}}">{{.Filename}}</h3>
@@ -57,13 +60,19 @@
                     <div>{{.UploadedAtFormatted}}</div>
                 </div>
                 <div class="card-actions justify-end">
-                    <div class="dropdown dropdown-end">
-                        <div tabindex="0" role="button" class="btn btn-ghost btn-sm">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
-                            </svg>
-                        </div>
-                        <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                    <button class="btn btn-ghost btn-sm" id="image-menu-{{.ID}}">
+                    
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                        </svg>
+                    </button>
+                    <div id="image-menu-dropdown-{{.ID}}" class="absolute top-0 left-0 z-[999]">
+                        <ul class="menu p-2 shadow bg-base-300 rounded-box w-52">
+                            {{if .Enabled}}
+                            <li><a onclick="toggleImage('{{.Filename}}', false)">Disable</a></li>
+                            {{else}}
+                            <li><a onclick="toggleImage('{{.Filename}}', true)">Enable</a></li>
+                            {{end}}
                             <li><a onclick="renameImage('{{.Filename}}')">Rename</a></li>
                             <li><a onclick="deleteImage('{{.Filename}}')">Delete</a></li>
                         </ul>
@@ -162,5 +171,118 @@ function deleteImage(filename) {
     document.getElementById('deleteFilename').value = filename;
     document.getElementById('deleteImageModal').showModal();
 }
+
+function toggleImage(filename, enabled) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/admin/images/toggle';
+    
+    const filenameInput = document.createElement('input');
+    filenameInput.type = 'hidden';
+    filenameInput.name = 'filename';
+    filenameInput.value = filename;
+    
+    const enabledInput = document.createElement('input');
+    enabledInput.type = 'hidden';
+    enabledInput.name = 'enabled';
+    enabledInput.value = enabled.toString();
+    
+    form.appendChild(filenameInput);
+    form.appendChild(enabledInput);
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function filterImages() {
+    const searchTerm = document.getElementById('imageSearch').value.toLowerCase();
+    const imageCards = document.querySelectorAll('.image-card');
+    let visibleCount = 0;
+    
+    imageCards.forEach(card => {
+        const filename = card.getAttribute('data-filename').toLowerCase();
+        if (filename.includes(searchTerm)) {
+            card.style.display = '';
+            visibleCount++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+    
+    document.getElementById('visibleImageCount').textContent = visibleCount;
+}
+
+function clearSearch() {
+    document.getElementById('imageSearch').value = '';
+    filterImages();
+}
+
+// Initialize image dropdown menus
+document.addEventListener('DOMContentLoaded', () => {
+    const offset = window.FloatingUIDOM.offset;
+    const flip = window.FloatingUIDOM.flip;
+    const shift = window.FloatingUIDOM.shift;
+    const autoPlacement = window.FloatingUIDOM.autoPlacement;
+    const autoUpdate = window.FloatingUIDOM.autoUpdate;
+
+    // Find all image menu buttons
+    document.querySelectorAll('[id^="image-menu-"]').forEach(button => {
+        if (button.id.startsWith('image-menu-dropdown')) return;
+
+        const filename = button.id.replace('image-menu-', '');
+        const dropdown = document.querySelector(`#image-menu-dropdown-${filename}`);
+        if (!dropdown) return;
+        
+        
+        dropdown.classList.add('hidden');
+        let cleanup = () => {};
+
+        function updatePosition() {
+            window.FloatingUIDOM.computePosition(button, dropdown, {
+                middleware: [
+                    autoPlacement({
+                        crossAxis: true,
+                        alignment: 'start',
+                    }),
+                    offset({
+                        mainAxis: 8, // 8px from the button
+                        crossAxis: 0,
+                    }),
+                ]
+            }).then(({x, y}) => {
+                Object.assign(dropdown.style, {
+                    left: `${x}px`,
+                    top: `${y}px`,
+                });
+            });
+        }
+        
+        button.addEventListener('click', (e) => {
+            e.stopPropagation();
+            
+            // Close other dropdowns first
+            document.querySelectorAll('[id^="image-menu-dropdown-"]').forEach(otherDropdown => {
+                if (otherDropdown !== dropdown && !otherDropdown.classList.contains('hidden')) {
+                    otherDropdown.classList.add('hidden');
+                }
+            });
+            
+            if (dropdown.classList.contains('hidden')) {
+                dropdown.classList.remove('hidden');
+                cleanup = autoUpdate(button, dropdown, updatePosition);
+            } else {
+                dropdown.classList.add('hidden');
+                cleanup();
+            }
+        });
+        
+        // Close on outside click
+        document.addEventListener('click', (e) => {
+            if (!button.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+                cleanup();
+            }
+        });
+    });
+});
 </script>
 {{end}}

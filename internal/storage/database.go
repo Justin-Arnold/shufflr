@@ -28,6 +28,11 @@ func NewDB(dbPath string) (*DB, error) {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)
 	}
 
+	// Initialize default settings
+	if err := db.InitializeDefaultSettings(); err != nil {
+		return nil, fmt.Errorf("failed to initialize default settings: %w", err)
+	}
+
 	return db, nil
 }
 
@@ -63,7 +68,13 @@ func (db *DB) migrate() error {
 			filename TEXT UNIQUE NOT NULL,
 			size INTEGER NOT NULL,
 			mime_type TEXT NOT NULL,
+			enabled BOOLEAN DEFAULT 1,
 			uploaded_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE TABLE IF NOT EXISTS settings (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			key TEXT UNIQUE NOT NULL,
+			value TEXT NOT NULL
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_api_requests_key_id ON api_requests(api_key_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_api_requests_timestamp ON api_requests(timestamp)`,
@@ -72,6 +83,49 @@ func (db *DB) migrate() error {
 	for _, query := range queries {
 		if _, err := db.conn.Exec(query); err != nil {
 			return fmt.Errorf("failed to execute migration query: %w", err)
+		}
+	}
+
+	// Add enabled column to existing image_files table if it doesn't exist
+	if err := db.addEnabledColumnIfNotExists(); err != nil {
+		return fmt.Errorf("failed to add enabled column: %w", err)
+	}
+
+	return nil
+}
+
+func (db *DB) addEnabledColumnIfNotExists() error {
+	// Check if enabled column exists
+	query := `PRAGMA table_info(image_files)`
+	rows, err := db.conn.Query(query)
+	if err != nil {
+		return fmt.Errorf("failed to get table info: %w", err)
+	}
+	defer rows.Close()
+
+	hasEnabledColumn := false
+	for rows.Next() {
+		var cid int
+		var name, dataType string
+		var notNull, pk int
+		var defaultValue sql.NullString
+		
+		err := rows.Scan(&cid, &name, &dataType, &notNull, &defaultValue, &pk)
+		if err != nil {
+			return fmt.Errorf("failed to scan column info: %w", err)
+		}
+		
+		if name == "enabled" {
+			hasEnabledColumn = true
+			break
+		}
+	}
+
+	// Add enabled column if it doesn't exist
+	if !hasEnabledColumn {
+		alterQuery := `ALTER TABLE image_files ADD COLUMN enabled BOOLEAN DEFAULT 1`
+		if _, err := db.conn.Exec(alterQuery); err != nil {
+			return fmt.Errorf("failed to add enabled column: %w", err)
 		}
 	}
 
@@ -263,8 +317,8 @@ func (db *DB) GetAPIKeyUsageCount(keyID int) (int, error) {
 
 // Image File methods
 func (db *DB) CreateImageFile(filename string, size int64, mimeType string) (*models.ImageFile, error) {
-	query := `INSERT INTO image_files (filename, size, mime_type) VALUES (?, ?, ?)`
-	result, err := db.conn.Exec(query, filename, size, mimeType)
+	query := `INSERT INTO image_files (filename, size, mime_type, enabled) VALUES (?, ?, ?, ?)`
+	result, err := db.conn.Exec(query, filename, size, mimeType, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create image file record: %w", err)
 	}
@@ -279,12 +333,13 @@ func (db *DB) CreateImageFile(filename string, size int64, mimeType string) (*mo
 		Filename:   filename,
 		Size:       size,
 		MimeType:   mimeType,
+		Enabled:    true,
 		UploadedAt: time.Now(),
 	}, nil
 }
 
 func (db *DB) GetAllImageFiles() ([]*models.ImageFile, error) {
-	query := `SELECT id, filename, size, mime_type, uploaded_at FROM image_files ORDER BY uploaded_at DESC`
+	query := `SELECT id, filename, size, mime_type, enabled, uploaded_at FROM image_files ORDER BY uploaded_at DESC`
 	rows, err := db.conn.Query(query)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get image files: %w", err)
@@ -294,7 +349,7 @@ func (db *DB) GetAllImageFiles() ([]*models.ImageFile, error) {
 	var images []*models.ImageFile
 	for rows.Next() {
 		var img models.ImageFile
-		err := rows.Scan(&img.ID, &img.Filename, &img.Size, &img.MimeType, &img.UploadedAt)
+		err := rows.Scan(&img.ID, &img.Filename, &img.Size, &img.MimeType, &img.Enabled, &img.UploadedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan image file: %w", err)
 		}
@@ -305,7 +360,7 @@ func (db *DB) GetAllImageFiles() ([]*models.ImageFile, error) {
 }
 
 func (db *DB) GetRandomImageFiles(count int) ([]*models.ImageFile, error) {
-	query := `SELECT id, filename, size, mime_type, uploaded_at FROM image_files ORDER BY RANDOM() LIMIT ?`
+	query := `SELECT id, filename, size, mime_type, enabled, uploaded_at FROM image_files WHERE enabled = 1 ORDER BY RANDOM() LIMIT ?`
 	rows, err := db.conn.Query(query, count)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get random image files: %w", err)
@@ -315,7 +370,7 @@ func (db *DB) GetRandomImageFiles(count int) ([]*models.ImageFile, error) {
 	var images []*models.ImageFile
 	for rows.Next() {
 		var img models.ImageFile
-		err := rows.Scan(&img.ID, &img.Filename, &img.Size, &img.MimeType, &img.UploadedAt)
+		err := rows.Scan(&img.ID, &img.Filename, &img.Size, &img.MimeType, &img.Enabled, &img.UploadedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan image file: %w", err)
 		}
@@ -326,7 +381,7 @@ func (db *DB) GetRandomImageFiles(count int) ([]*models.ImageFile, error) {
 }
 
 func (db *DB) GetImageFileCount() (int, error) {
-	query := `SELECT COUNT(*) FROM image_files`
+	query := `SELECT COUNT(*) FROM image_files WHERE enabled = 1`
 	var count int
 	err := db.conn.QueryRow(query).Scan(&count)
 	if err != nil {
@@ -350,5 +405,93 @@ func (db *DB) UpdateImageFilename(oldFilename, newFilename string) error {
 	if err != nil {
 		return fmt.Errorf("failed to update image filename: %w", err)
 	}
+	return nil
+}
+
+func (db *DB) UpdateImageEnabled(filename string, enabled bool) error {
+	query := `UPDATE image_files SET enabled = ? WHERE filename = ?`
+	_, err := db.conn.Exec(query, enabled, filename)
+	if err != nil {
+		return fmt.Errorf("failed to update image enabled status: %w", err)
+	}
+	return nil
+}
+
+func (db *DB) GetTotalImageFileCount() (int, error) {
+	query := `SELECT COUNT(*) FROM image_files`
+	var count int
+	err := db.conn.QueryRow(query).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get total image file count: %w", err)
+	}
+	return count, nil
+}
+
+// Settings methods
+func (db *DB) GetSetting(key string) (string, error) {
+	query := `SELECT value FROM settings WHERE key = ?`
+	var value string
+	err := db.conn.QueryRow(query, key).Scan(&value)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", nil // Return empty string if setting doesn't exist
+		}
+		return "", fmt.Errorf("failed to get setting: %w", err)
+	}
+	return value, nil
+}
+
+func (db *DB) SetSetting(key, value string) error {
+	query := `INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)`
+	_, err := db.conn.Exec(query, key, value)
+	if err != nil {
+		return fmt.Errorf("failed to set setting: %w", err)
+	}
+	return nil
+}
+
+func (db *DB) GetAllSettings() ([]*models.Setting, error) {
+	query := `SELECT id, key, value FROM settings ORDER BY key`
+	rows, err := db.conn.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get settings: %w", err)
+	}
+	defer rows.Close()
+
+	var settings []*models.Setting
+	for rows.Next() {
+		var setting models.Setting
+		err := rows.Scan(&setting.ID, &setting.Key, &setting.Value)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan setting: %w", err)
+		}
+		settings = append(settings, &setting)
+	}
+
+	return settings, nil
+}
+
+func (db *DB) InitializeDefaultSettings() error {
+	defaults := map[string]string{
+		"require_api_key_for_images": "true",
+		"default_image_count":        "20",
+		"max_image_count":           "100",
+		"cors_enabled":              "true",
+		"cors_origins":              "*",
+	}
+
+	for key, value := range defaults {
+		// Only set if the setting doesn't exist
+		existing, err := db.GetSetting(key)
+		if err != nil {
+			return err
+		}
+		if existing == "" {
+			if err := db.SetSetting(key, value); err != nil {
+				return err
+			}
+		}
+	}
+
 	return nil
 }

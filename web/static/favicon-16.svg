@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16">
+  <!-- Simplified version for smaller sizes -->
+  <rect width="16" height="16" rx="2" fill="#3b82f6"/>
+  
+  <!-- Three simple cards -->
+  <rect x="2" y="4" width="8" height="6" rx="1" fill="#e5e7eb" transform="rotate(-10 6 7)"/>
+  <rect x="3" y="5" width="8" height="6" rx="1" fill="#f3f4f6" transform="rotate(-3 7 8)"/>
+  <rect x="4" y="6" width="8" height="6" rx="1" fill="#ffffff"/>
+  
+  <!-- Simple image icon -->
+  <rect x="5" y="7" width="6" height="4" rx="0.5" fill="#ddd6fe"/>
+  <circle cx="6.5" cy="8.5" r="0.5" fill="#fbbf24"/>
+  <path d="M7.5 10 L8.5 9 L9.5 10 Z" fill="#8b5cf6"/>
+</svg>

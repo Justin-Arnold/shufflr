@@ -1,7 +1,18 @@
 {{define "content"}}
 <div class="space-y-6">
+    {{if .APIKeys}}
     <div class="flex justify-between items-center">
-        <h1 class="text-3xl font-bold">API Key Management</h1>
+        <!-- Search Bar -->
+        <div class="form-control">
+            <div class="input-group flex items-center gap-2">
+                <input type="text" id="apiKeySearch" placeholder="Search API keys by name..." class="input input-bordered flex-1 w-80" oninput="filterAPIKeys()" />
+                <button class="btn btn-square" onclick="clearAPIKeySearch()">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
         <a href="/admin/api-keys/new" class="btn btn-primary">
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -9,6 +20,7 @@
             New API Key
         </a>
     </div>
+    {{end}}
 
     {{if .Success}}
     <div class="alert alert-success">
@@ -32,21 +44,77 @@
     <!-- API Keys Table -->
     <div class="card bg-base-200 shadow-xl">
         <div class="card-body">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="card-title">API Keys</h2>
+                <div class="text-sm text-base-content/70">
+                    Showing <span id="visibleAPIKeyCount">{{len .APIKeys}}</span> of {{len .APIKeys}} keys
+                </div>
+            </div>
             <div class="overflow-x-auto">
                 <table class="table table-zebra">
                     <thead>
                         <tr>
-                            <th>Name</th>
-                            <th>Status</th>
-                            <th>Created</th>
-                            <th>Last Used</th>
-                            <th>Requests</th>
+                            <th class="sortable cursor-pointer hover:bg-base-300" data-column="name" onclick="sortTable('name')">
+                                <div class="flex items-center gap-2">
+                                    Name 
+                                    <span class="sort-indicator opacity-50" id="sort-name">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
+                                        </svg>
+                                    </span>
+                                </div>
+                            </th>
+                            <th class="sortable cursor-pointer hover:bg-base-300" data-column="status" onclick="sortTable('status')">
+                                <div class="flex items-center gap-2">
+                                    Status 
+                                    <span class="sort-indicator opacity-50" id="sort-status">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
+                                        </svg>
+                                    </span>
+                                </div>
+                            </th>
+                            <th class="sortable cursor-pointer hover:bg-base-300" data-column="created" onclick="sortTable('created')">
+                                <div class="flex items-center gap-2">
+                                    Created 
+                                    <span class="sort-indicator opacity-50" id="sort-created">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
+                                        </svg>
+                                    </span>
+                                </div>
+                            </th>
+                            <th class="sortable cursor-pointer hover:bg-base-300" data-column="lastused" onclick="sortTable('lastused')">
+                                <div class="flex items-center gap-2">
+                                    Last Used 
+                                    <span class="sort-indicator opacity-50" id="sort-lastused">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
+                                        </svg>
+                                    </span>
+                                </div>
+                            </th>
+                            <th class="sortable cursor-pointer hover:bg-base-300" data-column="requests" onclick="sortTable('requests')">
+                                <div class="flex items-center gap-2">
+                                    Requests 
+                                    <span class="sort-indicator opacity-50" id="sort-requests">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
+                                        </svg>
+                                    </span>
+                                </div>
+                            </th>
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="apiKeyTableBody">
                         {{range .APIKeys}}
-                        <tr>
+                        <tr class="api-key-row" 
+                            data-name="{{.Name}}" 
+                            data-status="{{if .Enabled}}1{{else}}0{{end}}" 
+                            data-created="{{.CreatedAt.Unix}}" 
+                            data-lastused="{{if .LastUsed}}{{.LastUsed.Unix}}{{else}}0{{end}}" 
+                            data-requests="{{.RequestCount}}">
                             <td>
                                 <div class="font-semibold">{{.Name}}</div>
                                 <div class="text-xs text-base-content/60">ID: {{.ID}}</div>
@@ -72,20 +140,20 @@
                                 <div class="text-sm">{{.RequestCount}}</div>
                             </td>
                             <td>
-                                <div class="dropdown dropdown-end">
-                                    <div tabindex="0" role="button" class="btn btn-ghost btn-sm">
-                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
-                                        </svg>
-                                    </div>
-                                    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                                <button class="btn btn-ghost btn-sm" id="api-menu-{{.ID}}">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z"></path>
+                                    </svg>
+                                </button>
+                                <div id="api-menu-dropdown-{{.ID}}" class="fixed top-0 left-0 z-[999]">
+                                    <ul class="menu p-2 shadow bg-base-300 rounded-box w-52">
                                         {{if .Enabled}}
-                                        <li><a onclick="toggleAPIKey({{.ID}}, false)">Disable</a></li>
+                                        <li><a onclick="toggleAPIKey(`{{.ID}}`, false)">Disable</a></li>
                                         {{else}}
-                                        <li><a onclick="toggleAPIKey({{.ID}}, true)">Enable</a></li>
+                                        <li><a onclick="toggleAPIKey(`{{.ID}}`, true)">Enable</a></li>
                                         {{end}}
-                                        <li><a onclick="regenerateAPIKey({{.ID}}, '{{.Name}}')">Regenerate</a></li>
-                                        <li><a onclick="deleteAPIKey({{.ID}}, '{{.Name}}')">Delete</a></li>
+                                        <li><a onclick="regenerateAPIKey(`{{.ID}}`, '{{.Name}}')">Regenerate</a></li>
+                                        <li><a onclick="deleteAPIKey(`{{.ID}}`, '{{.Name}}')">Delete</a></li>
                                     </ul>
                                 </div>
                             </td>
@@ -162,6 +230,92 @@
 </dialog>
 
 <script>
+let currentSort = { column: null, direction: 'asc' };
+
+function sortTable(column) {
+    const tbody = document.getElementById('apiKeyTableBody');
+    const rows = Array.from(tbody.querySelectorAll('.api-key-row'));
+    
+    // Determine sort direction
+    if (currentSort.column === column) {
+        currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+    } else {
+        currentSort.direction = 'asc';
+    }
+    currentSort.column = column;
+    
+    // Update sort indicators
+    updateSortIndicators(column, currentSort.direction);
+    
+    // Sort rows
+    rows.sort((a, b) => {
+        let aValue, bValue;
+        
+        switch (column) {
+            case 'name':
+                aValue = a.getAttribute('data-name').toLowerCase();
+                bValue = b.getAttribute('data-name').toLowerCase();
+                break;
+            case 'status':
+                aValue = parseInt(a.getAttribute('data-status'));
+                bValue = parseInt(b.getAttribute('data-status'));
+                break;
+            case 'created':
+                aValue = parseInt(a.getAttribute('data-created'));
+                bValue = parseInt(b.getAttribute('data-created'));
+                break;
+            case 'lastused':
+                aValue = parseInt(a.getAttribute('data-lastused'));
+                bValue = parseInt(b.getAttribute('data-lastused'));
+                break;
+            case 'requests':
+                aValue = parseInt(a.getAttribute('data-requests'));
+                bValue = parseInt(b.getAttribute('data-requests'));
+                break;
+            default:
+                return 0;
+        }
+        
+        if (aValue < bValue) return currentSort.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return currentSort.direction === 'asc' ? 1 : -1;
+        return 0;
+    });
+    
+    // Re-append sorted rows
+    rows.forEach(row => tbody.appendChild(row));
+}
+
+function updateSortIndicators(activeColumn, direction) {
+    // Reset all indicators
+    document.querySelectorAll('.sort-indicator').forEach(indicator => {
+        indicator.innerHTML = `
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l4-4 4 4m0 6l-4 4-4-4"></path>
+            </svg>
+        `;
+        indicator.className = 'sort-indicator opacity-50';
+    });
+    
+    // Update active indicator
+    const activeIndicator = document.getElementById(`sort-${activeColumn}`);
+    if (activeIndicator) {
+        activeIndicator.className = 'sort-indicator opacity-100';
+        if (direction === 'asc') {
+            activeIndicator.innerHTML = `
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
+                </svg>
+            `;
+        } else {
+            activeIndicator.innerHTML = `
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
+            `;
+        }
+    }
+}
+
 function toggleAPIKey(keyID, enabled) {
     document.getElementById('toggleKeyID').value = keyID;
     document.getElementById('toggleEnabled').value = enabled;
@@ -189,5 +343,91 @@ function deleteAPIKey(keyID, keyName) {
     document.getElementById('deleteKeyName').textContent = keyName;
     document.getElementById('deleteAPIKeyModal').showModal();
 }
+
+function filterAPIKeys() {
+    const searchTerm = document.getElementById('apiKeySearch').value.toLowerCase();
+    const apiKeyRows = document.querySelectorAll('.api-key-row');
+    let visibleCount = 0;
+    
+    apiKeyRows.forEach(row => {
+        const keyName = row.getAttribute('data-name').toLowerCase();
+        if (keyName.includes(searchTerm)) {
+            row.style.display = '';
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+        }
+    });
+    
+    document.getElementById('visibleAPIKeyCount').textContent = visibleCount;
+}
+
+function clearAPIKeySearch() {
+    document.getElementById('apiKeySearch').value = '';
+    filterAPIKeys();
+}
+
+// Initialize API key dropdown menus
+document.addEventListener('DOMContentLoaded', () => {
+    const offset = window.FloatingUIDOM.offset;
+    const flip = window.FloatingUIDOM.flip;
+    const shift = window.FloatingUIDOM.shift;
+    const autoPlacement = window.FloatingUIDOM.autoPlacement;
+    const autoUpdate = window.FloatingUIDOM.autoUpdate;
+
+    // Find all API menu buttons
+    document.querySelectorAll('[id^="api-menu-"]').forEach(button => {
+        const apiId = button.id.replace('api-menu-', '');
+        const dropdown = document.querySelector(`#api-menu-dropdown-${apiId}`);
+        
+        if (!dropdown) return;
+        
+        dropdown.classList.add('hidden');
+        let cleanup = () => {};
+
+        function updatePosition() {
+            window.FloatingUIDOM.computePosition(button, dropdown, {
+                middleware: [
+                    autoPlacement({
+                        crossAxis: true,
+                        alignment: 'start',
+                    })
+                ]
+            }).then(({x, y}) => {
+                Object.assign(dropdown.style, {
+                    left: `${x}px`,
+                    top: `${y}px`,
+                });
+            });
+        }
+        
+        button.addEventListener('click', (e) => {
+            e.stopPropagation();
+            
+            // Close other dropdowns first
+            document.querySelectorAll('[id^="api-menu-dropdown-"]').forEach(otherDropdown => {
+                if (otherDropdown !== dropdown && !otherDropdown.classList.contains('hidden')) {
+                    otherDropdown.classList.add('hidden');
+                }
+            });
+            
+            if (dropdown.classList.contains('hidden')) {
+                dropdown.classList.remove('hidden');
+                cleanup = autoUpdate(button, dropdown, updatePosition);
+            } else {
+                dropdown.classList.add('hidden');
+                cleanup();
+            }
+        });
+        
+        // Close on outside click
+        document.addEventListener('click', (e) => {
+            if (!button.contains(e.target) && !dropdown.contains(e.target)) {
+                dropdown.classList.add('hidden');
+                cleanup();
+            }
+        });
+    });
+});
 </script>
 {{end}}

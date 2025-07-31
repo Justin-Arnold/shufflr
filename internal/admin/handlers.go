@@ -138,10 +138,16 @@ func (s *Server) HandleLogout(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleDashboard(w http.ResponseWriter, r *http.Request) {
 	user := auth.GetAdminFromContext(r.Context())
 	
-	imageCount, err := s.db.GetImageFileCount()
+	enabledImageCount, err := s.db.GetImageFileCount()
 	if err != nil {
-		log.Printf("Error getting image count: %v", err)
-		imageCount = 0
+		log.Printf("Error getting enabled image count: %v", err)
+		enabledImageCount = 0
+	}
+
+	totalImageCount, err := s.db.GetTotalImageFileCount()
+	if err != nil {
+		log.Printf("Error getting total image count: %v", err)
+		totalImageCount = 0
 	}
 
 	apiKeys, err := s.db.GetAllAPIKeys()
@@ -168,10 +174,11 @@ func (s *Server) HandleDashboard(w http.ResponseWriter, r *http.Request) {
 
 	data := struct {
 		PageData
-		ImageCount       int
-		APIKeyCount      int
+		EnabledImageCount int
+		TotalImageCount   int
+		APIKeyCount       int
 		ActiveAPIKeyCount int
-		RequestCount     int
+		RequestCount      int
 	}{
 		PageData: PageData{
 			Title:      "Dashboard",
@@ -181,7 +188,8 @@ func (s *Server) HandleDashboard(w http.ResponseWriter, r *http.Request) {
 			BaseURL:    s.baseURL,
 			Success:    r.URL.Query().Get("success"),
 		},
-		ImageCount:        imageCount,
+		EnabledImageCount: enabledImageCount,
+		TotalImageCount:   totalImageCount,
 		APIKeyCount:       len(apiKeys),
 		ActiveAPIKeyCount: activeAPIKeyCount,
 		RequestCount:      requestCount,
@@ -428,6 +436,36 @@ func (s *Server) HandleImageDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Redirect(w, r, "/admin/images?success=Image deleted successfully", http.StatusSeeOther)
+}
+
+func (s *Server) HandleToggleImage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	filename := r.FormValue("filename")
+	enabledStr := r.FormValue("enabled")
+
+	if filename == "" {
+		http.Redirect(w, r, "/admin/images?error=Invalid filename", http.StatusSeeOther)
+		return
+	}
+
+	enabled := enabledStr == "true"
+
+	if err := s.db.UpdateImageEnabled(filename, enabled); err != nil {
+		log.Printf("Error updating image enabled status: %v", err)
+		http.Redirect(w, r, "/admin/images?error=Failed to update image status", http.StatusSeeOther)
+		return
+	}
+
+	action := "disabled"
+	if enabled {
+		action = "enabled"
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/admin/images?success=Image %s successfully", action), http.StatusSeeOther)
 }
 
 // Helper functions
@@ -694,6 +732,175 @@ func (s *Server) HandleDeleteAPIKey(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Deleted API key ID: %d", keyID)
 	http.Redirect(w, r, "/admin/api-keys?success=API key deleted successfully", http.StatusSeeOther)
+}
+
+// Settings management
+func (s *Server) HandleSettings(w http.ResponseWriter, r *http.Request) {
+	user := auth.GetAdminFromContext(r.Context())
+	
+	data := struct {
+		PageData
+		RequireAPIKeyForImages bool
+		DefaultImageCount      string
+		MaxImageCount          string
+		CORSEnabled            bool
+		CORSOrigins            string
+	}{
+		PageData: PageData{
+			Title:      "Settings",
+			ShowNav:    true,
+			ActivePage: "settings",
+			Username:   user.Username,
+			Success:    r.URL.Query().Get("success"),
+			Error:      r.URL.Query().Get("error"),
+		},
+	}
+
+	if r.Method == http.MethodPost {
+		// Handle form submission
+		requireAPIKey := r.FormValue("require_api_key_for_images") == "on"
+		defaultImageCount := r.FormValue("default_image_count")
+		maxImageCount := r.FormValue("max_image_count")
+		corsEnabled := r.FormValue("cors_enabled") == "on"
+		corsOrigins := r.FormValue("cors_origins")
+
+		// Validate input
+		if defaultImageCount == "" {
+			defaultImageCount = "20"
+		}
+		if maxImageCount == "" {
+			maxImageCount = "100"
+		}
+		if corsOrigins == "" {
+			corsOrigins = "*"
+		}
+
+		// Validate numeric values
+		if defaultCount, err := strconv.Atoi(defaultImageCount); err != nil || defaultCount < 1 {
+			data.Error = "Default image count must be a positive number"
+		} else if maxCount, err := strconv.Atoi(maxImageCount); err != nil || maxCount < 1 {
+			data.Error = "Maximum image count must be a positive number"
+		} else if defaultCount > maxCount {
+			data.Error = "Default image count cannot be greater than maximum image count"
+		} else {
+			// Save settings
+			settingsToSave := map[string]string{
+				"require_api_key_for_images": fmt.Sprintf("%t", requireAPIKey),
+				"default_image_count":        defaultImageCount,
+				"max_image_count":           maxImageCount,
+				"cors_enabled":              fmt.Sprintf("%t", corsEnabled),
+				"cors_origins":              corsOrigins,
+			}
+
+			var saveError bool
+			for key, value := range settingsToSave {
+				if err := s.db.SetSetting(key, value); err != nil {
+					log.Printf("Error saving setting %s: %v", key, err)
+					saveError = true
+				}
+			}
+
+			if saveError {
+				data.Error = "Failed to save some settings"
+			} else {
+				http.Redirect(w, r, "/admin/settings?success=Settings saved successfully", http.StatusSeeOther)
+				return
+			}
+		}
+
+		// Preserve form values on error
+		data.RequireAPIKeyForImages = requireAPIKey
+		data.DefaultImageCount = defaultImageCount
+		data.MaxImageCount = maxImageCount
+		data.CORSEnabled = corsEnabled
+		data.CORSOrigins = corsOrigins
+	} else {
+		// Load current settings
+		if val, err := s.db.GetSetting("require_api_key_for_images"); err == nil {
+			data.RequireAPIKeyForImages = val == "true"
+		}
+		if val, err := s.db.GetSetting("default_image_count"); err == nil {
+			data.DefaultImageCount = val
+		}
+		if val, err := s.db.GetSetting("max_image_count"); err == nil {
+			data.MaxImageCount = val
+		}
+		if val, err := s.db.GetSetting("cors_enabled"); err == nil {
+			data.CORSEnabled = val == "true"
+		}
+		if val, err := s.db.GetSetting("cors_origins"); err == nil {
+			data.CORSOrigins = val
+		}
+	}
+
+	s.renderTemplate(w, "settings.html", data)
+}
+
+// HandleServeImage serves images for the admin interface without API restrictions
+func (s *Server) HandleServeImage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Extract filename from URL path
+	path := r.URL.Path
+	if !strings.HasPrefix(path, "/admin/images/serve/") {
+		http.Error(w, "Not found", http.StatusNotFound)
+		return
+	}
+
+	filename := strings.TrimPrefix(path, "/admin/images/serve/")
+	if filename == "" {
+		http.Error(w, "Not found", http.StatusNotFound)
+		return
+	}
+
+	// Security: prevent directory traversal
+	filename = filepath.Base(filename)
+	
+	// Check if image exists in database (regardless of enabled status)
+	images, err := s.db.GetAllImageFiles()
+	if err != nil {
+		log.Printf("Error getting image files: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	var foundImage bool
+	var mimeType string
+	for _, img := range images {
+		if img.Filename == filename {
+			foundImage = true
+			mimeType = img.MimeType
+			break
+		}
+	}
+
+	if !foundImage {
+		http.Error(w, "Image not found", http.StatusNotFound)
+		return
+	}
+
+	// Serve the file directly from filesystem
+	filePath := filepath.Join(s.uploadDir, filename)
+	
+	// Check if file exists on filesystem
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		http.Error(w, "Image file not found", http.StatusNotFound)
+		return
+	}
+
+	// Set content type
+	if mimeType != "" {
+		w.Header().Set("Content-Type", mimeType)
+	}
+
+	// Set cache headers for better performance
+	w.Header().Set("Cache-Control", "public, max-age=3600")
+
+	// Serve the file
+	http.ServeFile(w, r, filePath)
 }
 
 func formatFileSize(bytes int64) string {

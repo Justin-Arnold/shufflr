@@ -51,6 +51,9 @@ func main() {
 	// Setup routes
 	mux := http.NewServeMux()
 
+	// Static files (favicon, etc.)
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/static/"))))
+
 	// Health check
 	mux.HandleFunc("/health", apiServer.HandleHealth)
 
@@ -60,8 +63,13 @@ func main() {
 			apiServer.HandleOptions(w, r)
 			return
 		}
-		// Get random images (requires API key)
-		authService.RequireAPIKey(apiServer.HandleRandomImages)(w, r)
+		// Get random images (conditionally requires API key based on settings)
+		requireAPIKey, err := db.GetSetting("require_api_key_for_images")
+		if err != nil || requireAPIKey == "true" {
+			authService.RequireAPIKey(apiServer.HandleRandomImages)(w, r)
+		} else {
+			apiServer.HandleRandomImages(w, r)
+		}
 	})
 	
 	mux.HandleFunc("/api/images/", func(w http.ResponseWriter, r *http.Request) {
@@ -69,7 +77,7 @@ func main() {
 			apiServer.HandleOptions(w, r)
 			return
 		}
-		// Serve individual image
+		// Serve individual image (API key requirement handled within the handler)
 		apiServer.HandleServeImage(w, r)
 	})
 
@@ -103,15 +111,19 @@ func main() {
 
 	// Protected admin routes
 	mux.HandleFunc("/admin/images", authService.RequireAdminAuth(adminServer.HandleImages))
+	mux.HandleFunc("/admin/images/serve/", authService.RequireAdminAuth(adminServer.HandleServeImage))
 	mux.HandleFunc("/admin/images/upload", authService.RequireAdminAuth(adminServer.HandleImageUpload))
 	mux.HandleFunc("/admin/images/rename", authService.RequireAdminAuth(adminServer.HandleImageRename))
 	mux.HandleFunc("/admin/images/delete", authService.RequireAdminAuth(adminServer.HandleImageDelete))
+	mux.HandleFunc("/admin/images/toggle", authService.RequireAdminAuth(adminServer.HandleToggleImage))
 
 	mux.HandleFunc("/admin/api-keys", authService.RequireAdminAuth(adminServer.HandleAPIKeys))
 	mux.HandleFunc("/admin/api-keys/new", authService.RequireAdminAuth(adminServer.HandleNewAPIKey))
 	mux.HandleFunc("/admin/api-keys/toggle", authService.RequireAdminAuth(adminServer.HandleToggleAPIKey))
 	mux.HandleFunc("/admin/api-keys/regenerate", authService.RequireAdminAuth(adminServer.HandleRegenerateAPIKey))
 	mux.HandleFunc("/admin/api-keys/delete", authService.RequireAdminAuth(adminServer.HandleDeleteAPIKey))
+
+	mux.HandleFunc("/admin/settings", authService.RequireAdminAuth(adminServer.HandleSettings))
 
 	// Add request logging middleware
 	handler := loggingMiddleware(mux)
