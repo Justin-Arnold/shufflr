@@ -46,9 +46,9 @@
         {{range .Images}}
         <div class="card bg-base-200 shadow-lg {{if not .Enabled}}opacity-50{{end}} image-card" data-filename="{{.Filename}}">
             <figure class="px-4 pt-4 relative">
-                <img src="/api/images/{{.Filename}}" alt="{{.Filename}}" 
+                <img src="/admin/images/serve/{{.Filename}}" alt="{{.Filename}}" 
                      class="rounded-lg w-full h-32 object-cover cursor-pointer {{if not .Enabled}}grayscale{{end}}"
-                     onclick="viewImage('{{.Filename}}', '/api/images/{{.Filename}}')" />
+                     onclick="viewImage('{{.Filename}}', '/admin/images/serve/{{.Filename}}')" />
                 {{if not .Enabled}}
                 <div class="absolute top-2 left-2 badge badge-error badge-sm">Disabled</div>
                 {{end}}

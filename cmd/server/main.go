@@ -111,6 +111,7 @@ func main() {
 
 	// Protected admin routes
 	mux.HandleFunc("/admin/images", authService.RequireAdminAuth(adminServer.HandleImages))
+	mux.HandleFunc("/admin/images/serve/", authService.RequireAdminAuth(adminServer.HandleServeImage))
 	mux.HandleFunc("/admin/images/upload", authService.RequireAdminAuth(adminServer.HandleImageUpload))
 	mux.HandleFunc("/admin/images/rename", authService.RequireAdminAuth(adminServer.HandleImageRename))
 	mux.HandleFunc("/admin/images/delete", authService.RequireAdminAuth(adminServer.HandleImageDelete))

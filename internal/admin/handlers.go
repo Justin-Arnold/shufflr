@@ -836,6 +836,73 @@ func (s *Server) HandleSettings(w http.ResponseWriter, r *http.Request) {
 	s.renderTemplate(w, "settings.html", data)
 }
 
+// HandleServeImage serves images for the admin interface without API restrictions
+func (s *Server) HandleServeImage(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Extract filename from URL path
+	path := r.URL.Path
+	if !strings.HasPrefix(path, "/admin/images/serve/") {
+		http.Error(w, "Not found", http.StatusNotFound)
+		return
+	}
+
+	filename := strings.TrimPrefix(path, "/admin/images/serve/")
+	if filename == "" {
+		http.Error(w, "Not found", http.StatusNotFound)
+		return
+	}
+
+	// Security: prevent directory traversal
+	filename = filepath.Base(filename)
+	
+	// Check if image exists in database (regardless of enabled status)
+	images, err := s.db.GetAllImageFiles()
+	if err != nil {
+		log.Printf("Error getting image files: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+		return
+	}
+
+	var foundImage bool
+	var mimeType string
+	for _, img := range images {
+		if img.Filename == filename {
+			foundImage = true
+			mimeType = img.MimeType
+			break
+		}
+	}
+
+	if !foundImage {
+		http.Error(w, "Image not found", http.StatusNotFound)
+		return
+	}
+
+	// Serve the file directly from filesystem
+	filePath := filepath.Join(s.uploadDir, filename)
+	
+	// Check if file exists on filesystem
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		http.Error(w, "Image file not found", http.StatusNotFound)
+		return
+	}
+
+	// Set content type
+	if mimeType != "" {
+		w.Header().Set("Content-Type", mimeType)
+	}
+
+	// Set cache headers for better performance
+	w.Header().Set("Cache-Control", "public, max-age=3600")
+
+	// Serve the file
+	http.ServeFile(w, r, filePath)
+}
+
 func formatFileSize(bytes int64) string {
 	const unit = 1024
 	if bytes < unit {
